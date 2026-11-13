@@ -19,7 +19,9 @@ export default defineConfig({
       for (const file of files.filter((file) => !bundle[file])) {
         if (file !== "index.html") hash.update(readFileSync(`public/${file}`));
       }
-      const source = readFileSync("scripts/sw.js", "utf8")
+      const template = readFileSync("scripts/sw.js", "utf8");
+      hash.update(template);
+      const source = template
         .replace("__VERSION__", hash.digest("hex").slice(0, 16))
         .replace("__FILES__", JSON.stringify(files));
       this.emitFile({ type: "asset", fileName: "sw.js", source });

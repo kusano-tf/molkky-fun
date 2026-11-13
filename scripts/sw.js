@@ -20,7 +20,8 @@ self.addEventListener("fetch", (event) => {
   const request = event.request;
   const url = new URL(request.url);
   if (request.method !== "GET" || !url.href.startsWith(self.registration.scope)) return;
-  if (request.mode === "navigate") {
+  const appPath = new URL(self.registration.scope).pathname;
+  if (request.mode === "navigate" && (url.pathname === appPath || url.pathname === `${appPath}index.html`)) {
     event.respondWith(caches.open(CACHE_NAME).then((cache) => cache.match(appUrl("index.html")))
       .then((cached) => cached || fetch(request)));
   } else if (APP_FILES.some((file) => appUrl(file) === url.href)) {

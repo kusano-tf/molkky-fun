@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kusano-tf.github.io/molkky-fun/app-data.schema.json",
+  "title": "Mölkky Fun 保存データ",
+  "description": "JSONエクスポートおよびローカルストレージ（molkky-fun:data）の現行保存形式。構造と値の範囲を定義します。IDの一意性・参照整合性、投球順、勝敗、history内の試合が終了済みであることはアプリ側で追加検証します。得点・勝者・分析値は投球記録から計算するため保存しません。",
+  "$comment": "追加プロパティは既存のインポート処理と同様に許可します。日時は新規データではISO 8601形式ですが、既存の読み込み処理が文字列のみを検証するためformat制約を設けません。",
+  "type": "object",
+  "required": ["version", "currentGame", "history"],
+  "properties": {
+    "version": {
+      "const": 1,
+      "description": "保存形式のバージョン。試合単位のruleVersionとは別です。"
+    },
+    "currentGame": {
+      "description": "現在の試合。進行中・終了済みのどちらも保持できます。登録画面ではnullです。",
+      "anyOf": [{ "$ref": "#/$defs/game" }, { "type": "null" }]
+    },
+    "history": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/game" },
+      "description": "終了済み試合の履歴。新しい試合が先頭です。アプリは試合終了時に直近50試合へ切り詰めますが、読み込み時の件数上限はありません。currentGameと同じ終了済み試合が含まれることがあります。"
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "player": {
+      "title": "プレイヤー",
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "試合内で一意のID。同じ人物のIDを試合間で維持すると個人成績を通算できます。UUID形式に限定しません。"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "\\S",
+          "description": "表示名。空文字・空白のみは不可。同じ名前でもIDが異なると別プレイヤーです。"
+        },
+        "teamId": {
+          "type": "string",
+          "description": "所属チームのID。チーム戦では必須で、同じ試合のteams内に存在する必要があります。個人戦では使用しません。"
+        }
+      },
+      "additionalProperties": true
+    },
+    "team": {
+      "title": "チーム",
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "試合内で一意のチームID。プレイヤーIDとも重複できません。"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "\\S",
+          "description": "チームの表示名。空文字・空白のみは不可。"
+        }
+      },
+      "additionalProperties": true
+    },
+    "throwRecord": {
+      "title": "投球記録",
+      "type": "object",
+      "required": ["playerId", "pins", "playedAt"],
+      "properties": {
+        "playerId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "投げたプレイヤーのID。同じ試合のplayers内に存在し、その時点の投球順と一致する必要があります。"
+        },
+        "pins": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1, "maximum": 12 },
+          "uniqueItems": true,
+          "maxItems": 12,
+          "description": "倒れたピンの番号。空配列はミス、1要素なら番号が得点、複数要素なら本数が得点です。狙ったピンではありません。",
+          "examples": [[], [12], [2, 5, 9]]
+        },
+        "playedAt": {
+          "type": "string",
+          "description": "投球を記録した日時。新規記録はISO 8601形式（例：2026-11-13T03:00:00.000Z）。"
+        }
+      },
+      "additionalProperties": true
+    },
+    "game": {
+      "title": "試合",
+      "type": "object",
+      "required": ["id", "ruleVersion", "mode", "players", "startedAt", "turns"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "試合を識別するID。アプリは新規試合でUUIDを生成します。"
+        },
+        "ruleVersion": {
+          "const": 2,
+          "description": "現行のルールバージョンは2。残り1人・1チームになったとき勝利とするルールです。"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["individual", "team"],
+          "description": "individualは個人戦、teamはチーム戦。"
+        },
+        "players": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/player" },
+          "description": "参加者。個人戦ではこの配列順、チーム戦では各チームのメンバーをこの配列から抽出した順で投げます。プレイヤーIDの重複は禁止です。"
+        },
+        "teams": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/team" },
+          "description": "チーム戦の投球順。各チームには1人以上の所属選手が必要です。個人戦では省略でき、使用しません。"
+        },
+        "startedAt": {
+          "type": "string",
+          "description": "試合開始日時。新規記録はISO 8601形式です。"
+        },
+        "turns": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/throwRecord" },
+          "description": "実際に投げた順の投球記録。未投球なら空配列。失格後の投球や試合終了後の追加投球は禁止です。"
+        }
+      },
+      "allOf": [
+        {
+          "if": { "required": ["mode"], "properties": { "mode": { "const": "team" } } },
+          "then": {
+            "required": ["teams"],
+            "properties": {
+              "teams": { "minItems": 2 },
+              "players": { "items": { "required": ["teamId"] } }
+            }
+          }
+        }
+      ],
+      "additionalProperties": true
+    }
+  },
+  "examples": [
+    { "version": 1, "currentGame": null, "history": [] },
+    {
+      "version": 1,
+      "currentGame": {
+        "id": "example-individual",
+        "ruleVersion": 2,
+        "mode": "individual",
+        "players": [{ "id": "alice", "name": "アリス" }, { "id": "bob", "name": "ボブ" }],
+        "startedAt": "2026-11-13T03:00:00.000Z",
+        "turns": [{ "playerId": "alice", "pins": [12], "playedAt": "2026-11-13T03:01:00.000Z" }]
+      },
+      "history": []
+    },
+    {
+      "version": 1,
+      "currentGame": {
+        "id": "example-team",
+        "ruleVersion": 2,
+        "mode": "team",
+        "players": [{ "id": "alice", "name": "アリス", "teamId": "red" }, { "id": "bob", "name": "ボブ", "teamId": "blue" }],
+        "teams": [{ "id": "red", "name": "赤チーム" }, { "id": "blue", "name": "青チーム" }],
+        "startedAt": "2026-11-13T03:00:00.000Z",
+        "turns": []
+      },
+      "history": []
+    }
+  ]
+}

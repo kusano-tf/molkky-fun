@@ -57,6 +57,12 @@ HTTPSで公開したサイトを開き、以下の操作で追加できます。
 
 試合データは引き続き端末のローカルストレージに保存されます。追加前のデータが見えない場合は、元のブラウザーでJSONを書き出し、追加したアプリで読み込んでください。
 
+## 保存JSONのスキーマ（開発者向け）
+
+`public/app-data.schema.json` にJSON Schema Draft 2020-12形式で保存データを定義しています。公開後はサイト直下の `app-data.schema.json`（GitHub Pagesでは `/molkky-fun/app-data.schema.json`）を直接開けます。アプリ内のメニューにはリンクを設けていません。
+
+現行形式の個人戦とチーム戦を定義し、使用例を `examples` に記載しています。試合の `mode` と `ruleVersion: 2` は必須です。IDの参照整合性や投球順、履歴の試合が終了済みであることは、引き続きアプリ側の `isAppData` で検証します。このスキーマ追加によってインポート処理は変更していません。
+
 ## GitHub Pagesへの公開
 
 `main` ブランチへの push で GitHub Actions がビルド・デプロイします。GitHub リポジトリの Settings > Pages で、公開元に GitHub Actions を設定してください。
