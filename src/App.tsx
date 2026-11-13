@@ -378,6 +378,11 @@ function App() {
   const scoreUnits = game ? getScoreUnits(game) : [];
   const winner = scoreUnits.find((unit) => unit.id === status?.winnerId);
   const isFinished = status?.isFinished ?? false;
+  const currentUnit = scoreUnits.find((unit) => currentPlayer && unit.playerIds.includes(currentPlayer.id));
+  const currentScore = currentUnit && status ? status.scores[currentUnit.id] : undefined;
+  const remainingPoints = currentScore ? 50 - currentScore.score : 50;
+  const isReach = !isFinished && !!currentScore && !currentScore.eliminated && remainingPoints >= 1 && remainingPoints <= 12;
+  const isLastChance = !isFinished && !!currentScore && !currentScore.eliminated && currentScore.consecutiveMisses === 2;
   const screenKey = `${game?.id ?? "setup"}:${isFinished ? "result" : "play"}`;
   const previousScreenKey = useRef(screenKey);
 
@@ -1127,9 +1132,30 @@ function App() {
                 <button className="primary-button" onClick={startAnotherGame}>新しいゲーム <span>→</span></button>
               </div>
             ) : (
-              <div className="turn-banner">
+              <div className={`turn-banner ${isReach ? "turn-reach" : isLastChance ? "turn-danger" : ""}`}>
+                <div className="turn-banner-heading">
                 <div><p className="eyebrow">NOW THROWING</p><h1>{currentPlayer?.name ?? "プレイヤー"}</h1></div>
                 <div className="turn-tag"><span className="live-dot" />投球順 {game!.turns.length + 1}</div>
+                </div>
+
+            <div className="turn-situation" role="status" aria-live="polite" aria-atomic="true">
+              {(isReach || isLastChance) && (
+                <div className="turn-alerts" key={`${currentPlayer?.id}:${remainingPoints}:${currentScore?.consecutiveMisses}`}>
+                  {isReach && (
+                    <div className="turn-alert reach-alert">
+                      <span className="turn-alert-icon" aria-hidden="true">✦</span>
+                      <div><strong>リーチ！ あと {remainingPoints} 点で勝利</strong><p>50点ぴったりを狙おう。</p></div>
+                    </div>
+                  )}
+                  {isLastChance && (
+                    <div className="turn-alert danger-alert">
+                      <span className="turn-alert-icon" aria-hidden="true">!</span>
+                      <div><strong>次のミスで失格</strong><p>{game!.mode === "team" ? "チームで2回連続ミス。ここが踏ん張りどころ！" : "2回連続ミス。ここが踏ん張りどころ！"}</p></div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
               </div>
             )}
 
@@ -1158,10 +1184,14 @@ function App() {
                 <small>{selectedPins.length === 1 ? "ピンの数字が得点" : selectedPins.length > 1 ? "倒れた本数が得点" : "ピンを選択してください"}</small>
               </div>
               <div className="throw-actions bottom-action-bar">
+                {(isReach || isLastChance) && <p className="action-situation">
+                  {isReach && <span className="reach-label">✦ あと {remainingPoints} 点で勝利</span>}
+                  {isLastChance && <span className="danger-label">次のミスで失格</span>}
+                </p>}
                 <button className="primary-button record-button" disabled={!selectedPins.length || isFinished} onClick={() => submitThrow(selectedPins)}>
                   {selectedPins.length ? `${scoreThrow(selectedPins)}点を記録する` : "得点を記録する"} <span>→</span>
                 </button>
-                <button className="miss-button" disabled={isFinished} onClick={() => submitThrow([])}>今回はミス</button>
+                <button className={`miss-button ${isLastChance ? "miss-button-danger" : ""}`} disabled={isFinished} onClick={() => submitThrow([])}>今回はミス</button>
               </div>
               <div className="throw-footer">
                 <span>3回連続ミスで失格</span>
@@ -1177,6 +1207,7 @@ function App() {
               <div className="score-list">
                 {scoreUnits.map((unit, index) => {
                   const unitScore = status!.scores[unit.id];
+                  const unitRemaining = 50 - unitScore.score;
                   const isCurrent = currentPlayer ? unit.playerIds.includes(currentPlayer.id) : false;
                   const currentTeamPlayer = isCurrent
                     ? currentPlayer?.name
@@ -1186,6 +1217,12 @@ function App() {
                       <span className={`player-dot dot-${index % 6}`}>{String(index + 1).padStart(2, "0")}</span>
                       <div className="score-player">
                         <strong>{unit.name}</strong>
+                        {!unitScore.eliminated && !isFinished && (
+                          <div className="score-state-tags">
+                            {unitRemaining >= 1 && unitRemaining <= 12 && <span className="reach-label">リーチ · あと{unitRemaining}点</span>}
+                            {unitScore.consecutiveMisses === 2 && <span className="danger-label">次のミスで失格</span>}
+                          </div>
+                        )}
                         <small>
                           {unitScore.eliminated
                             ? "失格"

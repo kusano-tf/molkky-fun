@@ -130,9 +130,38 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .game-layout { display: block; margin: 14px auto 24px; }
 .game-main { display: grid; gap: 12px; }
 .turn-banner, .winner-banner { display: flex; justify-content: space-between; align-items: center; min-height: 88px; padding: 17px; border-radius: 16px; background: #e8eee5; }
+.turn-banner { display: block; }
+.turn-banner-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.turn-banner-heading > div:first-child { min-width: 0; overflow-wrap: anywhere; }
+.turn-banner-heading .turn-tag { flex-shrink: 0; }
 .turn-banner h1, .winner-banner h1 { margin: 5px 0 0; color: #244e39; font-size: 25px; letter-spacing: -.04em; }
 .turn-tag { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 99px; background: #fffefa; color: #617168; font-size: 10px; font-weight: 600; }
 .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #65a578; box-shadow: 0 0 0 4px #65a57820; }
+.turn-banner.turn-reach { background: #f5ecd3; box-shadow: inset 0 0 0 1px #e5cc8a; }
+.turn-banner.turn-danger { background: #f9e8e2; box-shadow: inset 0 0 0 1px #e6b4a5; }
+.turn-situation:empty { display: none; }
+.turn-situation:not(:empty) { margin-top: 14px; padding-top: 12px; border-top: 1px solid #244e391c; }
+.turn-alerts { display: grid; gap: 8px; animation: turn-alert-enter .4s ease-out; }
+.turn-alert { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
+.turn-alert strong { display: block; font-size: 14px; }
+.turn-alert p { margin: 5px 0 0; font-size: 11px; line-height: 1.6; }
+.turn-alert-icon { display: grid; place-items: center; flex: 0 0 26px; height: 26px; border-radius: 50%; background: #ffffff80; font-size: 19px; font-weight: 800; }
+.reach-alert { color: #805c15; }
+.danger-alert { color: #9e392a; }
+.reach-label { color: #805c15; background: #fff0c7; }
+.danger-label { color: #9e392a; background: #fce2d8; }
+.score-state-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.score-state-tags:empty { display: none; }
+.score-state-tags span, .action-situation span { padding: 4px 6px; border-radius: 6px; font-size: 10px; font-weight: 700; }
+.action-situation { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px; grid-column: 1 / -1; margin: 0; }
+.miss-button.miss-button-danger { border-color: #d5a092; background: #fff0ea; color: #9e392a; }
+@keyframes turn-alert-enter {
+  from { opacity: 0; transform: translateY(6px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .turn-alerts { animation: none; }
+}
 .winner-banner { min-height: 145px; flex-wrap: wrap; background: #e9eee2; gap: 12px; }
 .winner-banner h1 { font-size: 23px; }
 .winner-banner p:last-child { margin: 6px 0 0; color: #748176; font-size: 11px; }
