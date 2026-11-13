@@ -83,14 +83,19 @@ export type PlayerCareerAnalysis = {
   averagePoints: number | null;
   bestThrow: number | null;
   tenPlusThrows: number;
+  tenPlusOpportunities: number;
   accuracy: number | null;
   tenPlusRate: number | null;
   consistency: number | null;
+  finishAttempts: number;
+  exactFinishes: number;
+  finishRate: number | null;
   radarValues: {
     accuracy: number;
     averagePoints: number;
     tenPlusRate: number;
     consistency: number;
+    finishRate: number;
   };
 };
 
@@ -296,7 +301,10 @@ export function getPlayerCareerAnalysis(games: Game[]): PlayerCareerAnalysis[] {
       totalPoints: number;
       bestThrow: number | null;
       tenPlusThrows: number;
+      tenPlusOpportunities: number;
       throwScores: number[];
+      finishAttempts: number;
+      exactFinishes: number;
     }
   >();
 
@@ -318,7 +326,10 @@ export function getPlayerCareerAnalysis(games: Game[]): PlayerCareerAnalysis[] {
           totalPoints: 0,
           bestThrow: null,
           tenPlusThrows: 0,
+          tenPlusOpportunities: 0,
           throwScores: [],
+          finishAttempts: 0,
+          exactFinishes: 0,
         };
         players.set(player.id, stats);
       }
@@ -326,12 +337,26 @@ export function getPlayerCareerAnalysis(games: Game[]): PlayerCareerAnalysis[] {
       if (winningUnit?.playerIds.includes(player.id)) stats.gamesWon += 1;
     }
 
-    for (const turn of game.turns) {
+    const unitByPlayer = new Map(getScoreUnits(game).flatMap((unit) =>
+      unit.playerIds.map((id) => [id, unit.id] as const)));
+    const previousScores = new Map<string, number>();
+    replayGame(game, (turn, _turnNumber, scores) => {
       const stats = players.get(turn.playerId);
       if (!stats) {
         throw new Error("試合データの選手を集計できません。");
       }
       const points = scoreThrow(turn.pins);
+      const unitId = unitByPlayer.get(turn.playerId)!;
+      const remaining = 50 - (previousScores.get(unitId) ?? 0);
+      if (remaining >= 13) {
+        stats.tenPlusOpportunities += 1;
+        if (points >= 10) stats.tenPlusThrows += 1;
+      }
+      if (remaining >= 1 && remaining <= 12) {
+        stats.finishAttempts += 1;
+        if (points === remaining) stats.exactFinishes += 1;
+      }
+      previousScores.set(unitId, scores[unitId].score);
       stats.throws += 1;
       stats.totalPoints += points;
       stats.throwScores.push(points);
@@ -341,14 +366,14 @@ export function getPlayerCareerAnalysis(games: Game[]): PlayerCareerAnalysis[] {
       } else {
         stats.scoringThrows += 1;
       }
-      if (points >= 10) stats.tenPlusThrows += 1;
-    }
+    });
   }
 
   return [...players.entries()].map(([playerId, stats]) => {
     const averagePoints = stats.throws ? stats.totalPoints / stats.throws : null;
     const accuracy = stats.throws ? (stats.scoringThrows / stats.throws) * 100 : null;
-    const tenPlusRate = stats.throws ? (stats.tenPlusThrows / stats.throws) * 100 : null;
+    const tenPlusRate = stats.tenPlusOpportunities
+      ? (stats.tenPlusThrows / stats.tenPlusOpportunities) * 100 : null;
     const scoringThrowScores = stats.throwScores.filter((points) => points > 0);
     const scoringAverage = stats.scoringThrows ? stats.totalPoints / stats.scoringThrows : 0;
     const variance = scoringThrowScores.length > 1
@@ -356,6 +381,7 @@ export function getPlayerCareerAnalysis(games: Game[]): PlayerCareerAnalysis[] {
         scoringThrowScores.length
       : null;
     const consistency = variance === null ? null : Math.max(0, (1 - Math.sqrt(variance) / 6) * 100);
+    const finishRate = stats.finishAttempts ? (stats.exactFinishes / stats.finishAttempts) * 100 : null;
 
     return {
       playerId,
@@ -369,14 +395,19 @@ export function getPlayerCareerAnalysis(games: Game[]): PlayerCareerAnalysis[] {
       averagePoints,
       bestThrow: stats.bestThrow,
       tenPlusThrows: stats.tenPlusThrows,
+      tenPlusOpportunities: stats.tenPlusOpportunities,
       accuracy,
       tenPlusRate,
       consistency,
+      finishAttempts: stats.finishAttempts,
+      exactFinishes: stats.exactFinishes,
+      finishRate,
       radarValues: {
         accuracy: accuracy ?? 0,
         averagePoints: averagePoints === null ? 0 : (averagePoints / 12) * 100,
         tenPlusRate: tenPlusRate ?? 0,
         consistency: consistency ?? 0,
+        finishRate: finishRate ?? 0,
       },
     };
   });

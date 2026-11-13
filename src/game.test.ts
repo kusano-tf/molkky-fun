@@ -198,6 +198,40 @@ describe("getGameAnalysis", () => {
 });
 
 describe("getPlayerCareerAnalysis", () => {
+  it("includes misses and remaining 13, excludes remaining 12 and busts, then resumes after a bust", () => {
+    const turns: Array<[string, number[]]> = [];
+    const points = [0, 12, 12, 12, 1, 1, 1, 12, 12, 1, 12];
+    points.forEach((score, index) => {
+      turns.push(["a", score ? [score] : []]);
+      if (index < points.length - 1) turns.push(["b", [1]]);
+    });
+    const player = getPlayerCareerAnalysis([gameWith(...turns)])[0];
+    expect(player).toMatchObject({
+      tenPlusThrows: 4,
+      tenPlusOpportunities: 8,
+      tenPlusRate: 50,
+      radarValues: { tenPlusRate: 50 },
+    });
+  });
+
+  it("counts misses, undershoots and busts only when an exact finish was possible", () => {
+    const turns: Array<[string, number[]]> = [];
+    const points = [12, 12, 12, 2, 0, 5, 8, 12, 1, 12];
+    points.forEach((score, index) => {
+      turns.push(["a", score ? [score] : []]);
+      if (index < points.length - 1) turns.push(["b", [1]]);
+    });
+    const analysis = getPlayerCareerAnalysis([gameWith(...turns)]);
+    expect(analysis.find((player) => player.playerId === "a")).toMatchObject({
+      finishAttempts: 4, exactFinishes: 1, finishRate: 25,
+      tenPlusThrows: 4, tenPlusOpportunities: 6, tenPlusRate: (4 / 6) * 100,
+      radarValues: { finishRate: 25 },
+    });
+    expect(analysis.find((player) => player.playerId === "b")).toMatchObject({
+      finishAttempts: 0, exactFinishes: 0, finishRate: null,
+    });
+  });
+
   it("aggregates player performance across completed matches sharing player IDs", () => {
     const firstGame = gameWith(
       ["a", [10]], ["b", [1]], ["a", [10]], ["b", [1]], ["a", [10]],
@@ -221,14 +255,15 @@ describe("getPlayerCareerAnalysis", () => {
       totalPoints: 55,
       averagePoints: 5.5,
       bestThrow: 10,
-      tenPlusThrows: 5,
+      tenPlusThrows: 4,
+      tenPlusOpportunities: 9,
       accuracy: 100,
       consistency: 25,
     });
     expect(playerA?.radarValues).toMatchObject({
       accuracy: 100,
       averagePoints: (5.5 / 12) * 100,
-      tenPlusRate: 50,
+      tenPlusRate: (4 / 9) * 100,
     });
   });
 
@@ -250,11 +285,23 @@ describe("getPlayerCareerAnalysis", () => {
       gamesPlayed: 1,
       gamesWon: 1,
       throws: 3,
+      tenPlusThrows: 2,
+      tenPlusOpportunities: 2,
+      tenPlusRate: 100,
+      finishAttempts: 1,
+      exactFinishes: 1,
+      finishRate: 100,
     });
     expect(analysis.find((player) => player.playerId === "red-2")).toMatchObject({
       gamesPlayed: 1,
       gamesWon: 1,
       throws: 2,
+      tenPlusThrows: 2,
+      tenPlusOpportunities: 2,
+      tenPlusRate: 100,
+      finishAttempts: 0,
+      exactFinishes: 0,
+      finishRate: null,
     });
     expect(analysis.find((player) => player.playerId === "blue-1")).toMatchObject({
       gamesPlayed: 1,

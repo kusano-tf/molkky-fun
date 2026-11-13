@@ -24,6 +24,7 @@ const CAREER_RADAR_AXES = [
   { key: "averagePoints", label: "平均得点" },
   { key: "tenPlusRate", label: "10点以上率" },
   { key: "consistency", label: "安定度" },
+  { key: "finishRate", label: "あがり成功率" },
 ] as const;
 
 function formatDateTime(value: string): string {
@@ -74,7 +75,7 @@ function CareerRadarChart({ values }: { values: PlayerCareerAnalysis["radarValue
             <text
               x={label.x}
               y={label.y + (index === 0 ? -3 : index === 2 ? 10 : 4)}
-              textAnchor={index === 1 ? "start" : index === 3 ? "end" : "middle"}
+              textAnchor={label.x > centerX + 10 ? "start" : label.x < centerX - 10 ? "end" : "middle"}
               fill="#718075"
               fontFamily="sans-serif"
               fontSize={10}
@@ -594,14 +595,18 @@ function App() {
                         <strong>{selectedCareerPlayer.averagePoints === null ? "—" : selectedCareerPlayer.averagePoints.toFixed(1)}</strong>
                       </div>
                       <div>
-                        <span>10点以上</span>
+                        <span>10点以上率</span>
                         <strong>
-                          {selectedCareerPlayer.tenPlusThrows} 回
-                          {" ・ "}
                           {selectedCareerPlayer.tenPlusRate === null ? "—" : `${selectedCareerPlayer.tenPlusRate.toFixed(0)}%`}
                         </strong>
+                        <small>{selectedCareerPlayer.tenPlusThrows} 回 / {selectedCareerPlayer.tenPlusOpportunities} 機会</small>
                       </div>
                       <div><span>最高得点</span><strong>{selectedCareerPlayer.bestThrow ?? "—"}</strong></div>
+                      <div>
+                        <span>あがり成功率</span>
+                        <strong>{selectedCareerPlayer.finishRate === null ? "—" : `${selectedCareerPlayer.finishRate.toFixed(0)}%`}</strong>
+                        <small>{selectedCareerPlayer.exactFinishes} 成功 / {selectedCareerPlayer.finishAttempts} 機会</small>
+                      </div>
                     </div>
                     <div className="career-radar-card">
                       <div className="section-heading">
@@ -611,6 +616,8 @@ function App() {
                       <CareerRadarChart values={selectedCareerPlayer.radarValues} />
                       <p className="career-note">
                         終了済み試合のみを集計。チーム戦の勝利は所属メンバー全員に加算します。平均得点は12点満点換算、安定度は成功投球のばらつきから算出します（2回未満は未計測）。
+                        10点以上率は投球前に残り13点以上ある場面だけで集計し、ミスも機会に含めます。対象の投球がない場合は未計測（レーダーでは0）です。
+                        あがり成功率は投球前の得点が38〜49点のとき、ぴったり50点で上がれた割合です。ミス・点数不足・50点超過も機会に含め、チーム戦では投げた本人に集計します。狙いの宣言ではなく投球結果に基づく指標です。機会がない場合は未計測（レーダーでは0）です。
                       </p>
                     </div>
                   </div>

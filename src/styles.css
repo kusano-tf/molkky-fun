@@ -59,7 +59,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .career-share-content { display: grid; gap: 12px; padding: 12px; border-radius: 14px; background: #f5f3ed; }
 .career-share-heading { padding: 4px 2px 0; }
 .career-share-heading h3 { margin-top: 6px; color: #244e39; font-size: 20px; }
-.career-share-button { width: 100%; min-height: 46px; }
+.career-share-button { width: 100%; min-height: 46px; margin-top: 16px; }
 .career-radar-card { margin-top: 12px; padding: 14px; border: 1px solid #eeefe8; border-radius: 14px; background: #fffefa; }
 .career-radar-card .section-heading { margin-bottom: 0; }
 .career-radar-chart { display: block; width: 100%; max-width: 320px; height: auto; margin: 6px auto 0; }
