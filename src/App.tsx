@@ -181,6 +181,15 @@ function App() {
   const scoreUnits = game ? getScoreUnits(game) : [];
   const winner = scoreUnits.find((unit) => unit.id === status?.winnerId);
   const isFinished = status?.isFinished ?? false;
+  const screenKey = `${game?.id ?? "setup"}:${isFinished ? "result" : "play"}:${showHistory ? "history" : "main"}`;
+  const previousScreenKey = useRef(screenKey);
+
+  useEffect(() => {
+    if (previousScreenKey.current === screenKey) return;
+    previousScreenKey.current = screenKey;
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [screenKey]);
+
   const analysis = useMemo(
     () => (game && isFinished ? getGameAnalysis(game) : null),
     [game, isFinished],
