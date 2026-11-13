@@ -2,6 +2,9 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { toBlob } from "html-to-image";
 import { OverlayDialog } from "./OverlayDialog";
 import { AppGuide } from "./AppGuide";
+import { useLiveSharing } from "./useLiveSharing";
+import { LiveSharingPanel } from "./LiveSharingPanel";
+import { LiveGameView } from "./LiveGameView";
 import {
   createGame,
   emptyData,
@@ -353,6 +356,7 @@ function App() {
   const [showHistory, setShowHistory] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [showLiveSharing, setShowLiveSharing] = useState(false);
   const [selectedHistoryGameId, setSelectedHistoryGameId] = useState<string | null>(null);
   const [showCareerAnalysis, setShowCareerAnalysis] = useState(false);
   const [careerBackTarget, setCareerBackTarget] = useState<"menu" | "history">("menu");
@@ -360,6 +364,7 @@ function App() {
   const fileInput = useRef<HTMLInputElement>(null);
   const careerAnalysisImageRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
+  const live = useLiveSharing(data.currentGame);
 
   useEffect(() => {
     if (skipFirstSave.current) {
@@ -385,7 +390,9 @@ function App() {
   const remainingPoints = currentScore ? 50 - currentScore.score : 50;
   const isReach = !isFinished && !!currentScore && !currentScore.eliminated && remainingPoints >= 1 && remainingPoints <= 12;
   const isLastChance = !isFinished && !!currentScore && !currentScore.eliminated && currentScore.consecutiveMisses === 2;
-  const screenKey = `${game?.id ?? "setup"}:${isFinished ? "result" : "play"}`;
+  const remoteFinished = live.remoteGame ? getGameStatus(live.remoteGame).isFinished : false;
+  const screenKey = live.viewer ? `viewer:${live.remoteGame?.id ?? "waiting"}:${remoteFinished ? "result" : "play"}`
+    : `${game?.id ?? "setup"}:${isFinished ? "result" : "play"}`;
   const previousScreenKey = useRef(screenKey);
 
   useEffect(() => {
@@ -409,6 +416,7 @@ function App() {
 
   function startGame(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (live.viewer) return;
     const activePlayers = players
       .map((player) => ({
         id: player.id,
@@ -440,6 +448,7 @@ function App() {
   }
 
   function submitThrow(pins: number[]) {
+    if (live.viewer) return;
     if (!game || !status?.currentPlayerId || status.winnerId) return;
     const nextGame: Game = {
       ...game,
@@ -461,6 +470,7 @@ function App() {
   }
 
   function undoThrow() {
+    if (live.viewer) return;
     if (!game || game.turns.length === 0) return;
     const previousGame = { ...game, turns: game.turns.slice(0, -1) };
     setData((current) => ({
@@ -473,6 +483,7 @@ function App() {
   }
 
   function startAnotherGame() {
+    if (live.viewer) return;
     if (game && !isFinished && !window.confirm("進行中のゲームを終了して、新しいゲームを始めますか？")) {
       return;
     }
@@ -563,6 +574,7 @@ function App() {
   }
 
   async function importData(file: File | undefined) {
+    if (live.viewer) return;
     if (!file) return;
     try {
       const parsed: unknown = JSON.parse(await file.text());
@@ -706,7 +718,11 @@ function App() {
           <img className="brand-wordmark" src={`${import.meta.env.BASE_URL}icons/wordmark.svg`} alt="Mölkky Fun" />
         </a>
         <div className="toolbar">
+          {live.host && <button className="text-button live-host-status" onClick={() => {
+            setShowLiveSharing(true); setMenuOpen(true);
+          }}>{live.host.phase === "ready" ? `共有中 · ${live.host.viewers}台` : live.host.phase === "starting" ? "共有準備中" : "共有を確認"}</button>}
           <button className="icon-button menu-toggle" aria-label="メニューを開く" aria-haspopup="dialog" aria-expanded={menuOpen} onClick={() => {
+            setShowLiveSharing(false);
             setShowGuide(false);
             setShowHistory(false);
             setSelectedHistoryGameId(null);
@@ -726,10 +742,11 @@ function App() {
 
       <OverlayDialog
         open={menuOpen}
-        title={showGuide ? "使い方・分析指標" : selectedHistoryGame ? "試合結果" : showHistory ? (showCareerAnalysis ? "個人分析" : "試合履歴") : "メニュー"}
-        pageKey={showGuide ? "guide" : selectedHistoryGame?.id ?? (showHistory ? (showCareerAnalysis ? "career" : "history") : "menu")}
+        title={showLiveSharing ? "ライブ共有・観戦" : showGuide ? "使い方・分析指標" : selectedHistoryGame ? "試合結果" : showHistory ? (showCareerAnalysis ? "個人分析" : "試合履歴") : "メニュー"}
+        pageKey={showLiveSharing ? "live" : showGuide ? "guide" : selectedHistoryGame?.id ?? (showHistory ? (showCareerAnalysis ? "career" : "history") : "menu")}
         onClose={() => setMenuOpen(false)}
-        onBack={showGuide ? () => setShowGuide(false) : selectedHistoryGame ? () => setSelectedHistoryGameId(null)
+        onBack={showLiveSharing ? () => { setShowLiveSharing(false); setShowGuide(false); setShowHistory(false); }
+          : showGuide ? () => setShowGuide(false) : selectedHistoryGame ? () => setSelectedHistoryGameId(null)
           : showHistory ? () => {
             if (showCareerAnalysis) {
               setShowCareerAnalysis(false);
@@ -746,12 +763,18 @@ function App() {
             accept="application/json,.json"
             onChange={(event) => void importData(event.target.files?.[0])}
           />
-        {showGuide ? <AppGuide /> : !showHistory ? (
+        {showLiveSharing ? <LiveSharingPanel
+          hasGame={!!game} host={live.host} viewer={live.viewer}
+          onStart={() => void live.startHost()} onStop={live.stopHost}
+          onJoin={(invitation) => { void live.join(invitation); setMenuOpen(false); }}
+          onLeave={() => { live.leave(); setMenuOpen(false); }} onRetry={live.retry}
+        /> : showGuide ? <AppGuide /> : !showHistory ? (
           <nav className="menu-options" aria-label="アプリメニュー">
             <button type="button" onClick={() => { setShowCareerAnalysis(false); setShowHistory(true); }}>試合履歴 <span>{data.history.length} 試合 →</span></button>
             <button type="button" onClick={() => { setCareerBackTarget("menu"); setShowCareerAnalysis(true); setShowHistory(true); }}>全試合の個人分析 <span>→</span></button>
+            <button type="button" onClick={() => setShowLiveSharing(true)}>ライブ共有・観戦 <span>→</span></button>
             <button type="button" onClick={exportData}>データを書き出す <span>↓</span></button>
-            <button type="button" onClick={() => fileInput.current?.click()}>データを読み込む <span>↑</span></button>
+            <button type="button" disabled={!!live.viewer} onClick={() => fileInput.current?.click()}>データを読み込む <span>↑</span></button>
             <button type="button" onClick={() => setShowGuide(true)}>使い方・分析指標 <span>→</span></button>
           </nav>
         ) : selectedHistoryGame ? (
@@ -881,7 +904,9 @@ function App() {
         {(storageError || notice) && <p className="notice" role="status">{storageError || notice}</p>}
       </OverlayDialog>
 
-      {inSetup ? (
+      {live.viewer ? <LiveGameView game={live.remoteGame} state={live.viewer} onRetry={live.retry} onLeave={live.leave}>
+        {live.remoteGame && remoteFinished && <GameResults game={live.remoteGame} isSharing={isSharing} onShare={shareAnalysis} />}
+      </LiveGameView> : inSetup ? (
         <section className="setup-layout">
           <div className="intro-card">
             <p className="eyebrow">MOLKKY SCOREKEEPER</p>

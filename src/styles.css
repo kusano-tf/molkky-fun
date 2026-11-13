@@ -287,6 +287,25 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .menu-options button { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 14px 16px; border: 1px solid #e5e8df; border-radius: 12px; background: var(--paper); color: var(--green); text-align: left; font-size: 14px; }
 .menu-options button span { flex-shrink: 0; font-size: 12px; }
 .menu-toggle { font-size: 22px; }
+.live-sharing-panel, .live-game-view { display: grid; gap: 16px; }
+.live-game-view { margin-top: 16px; }
+.live-section { padding: 18px; border: 1px solid #e5e8df; border-radius: 14px; background: var(--paper); }
+.live-section h3 { margin: 0 0 12px; color: var(--green); font-size: 16px; }
+.live-section p { color: #68756c; font-size: 12px; line-height: 1.7; }
+.live-section .primary-button { width: 100%; justify-content: center; }
+.live-qr { display: block; width: min(100%, 280px); height: auto; margin: 16px auto; border-radius: 10px; }
+.live-field { display: grid; gap: 8px; margin: 14px 0; color: #526057; font-size: 12px; }
+.live-field input, .live-field textarea { width: 100%; min-width: 0; padding: 12px; border: 1px solid #dfe7df; border-radius: 10px; background: #fff; color: #344a3a; font-size: 16px; overflow-wrap: anywhere; }
+.live-share-actions { display: grid; gap: 8px; }
+.live-host-status { color: var(--green); font-size: 10px; }
+.live-view-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.live-view-heading h1 { margin: 5px 0 0; font-size: 23px; }
+.live-state { padding: 7px 10px; border-radius: 99px; background: #ede9df; color: #805c15; font-size: 11px; }
+.live-connected { background: #e3efe5; color: var(--green); }
+.live-updated { margin: 0; color: #78857a; font-size: 11px; }
+.live-view-actions { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.live-view-actions .primary-button { justify-content: center; flex: 1; }
+.live-game-view .score-list { margin-top: 12px; }
 .app-guide { display: grid; gap: 16px; }
 .app-guide section { padding: 18px; border: 1px solid #e5e8df; border-radius: 14px; background: var(--paper); }
 .app-guide h3 { margin: 0 0 12px; color: var(--green); font-size: 16px; }
