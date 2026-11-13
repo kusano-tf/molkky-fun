@@ -10,7 +10,8 @@ export default defineConfig({
     apply: "build",
     generateBundle(_options, bundle) {
       const files = ["index.html", ...Object.keys(bundle).filter((file) => file !== "index.html"),
-        "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
+        "manifest.webmanifest", "icons/logo.svg", "icons/wordmark.svg", "icons/icon-192.png", "icons/icon-512.png",
+        "icons/icon-maskable-512.png", "icons/apple-touch-icon.png"];
       const hash = createHash("sha256");
       for (const output of Object.values(bundle)) {
         hash.update(output.type === "chunk" ? output.code : output.source);

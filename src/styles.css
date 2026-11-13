@@ -21,10 +21,9 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .app-shell { width: min(100%, 480px); margin: 0 auto; padding: 0 16px 24px; }
 .topbar { position: sticky; z-index: 5; top: 0; height: 64px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e8e7df; background: #f5f3ed; }
 .brand { display: flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; }
-.brand-mark { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 13px; color: #fff5dd; background: var(--green); font-size: 18px; font-weight: 800; }
-.brand strong, .brand small { display: block; }
-.brand strong { font-size: 14px; letter-spacing: .02em; }
-.brand small { display: none; }
+.brand { min-width: 0; flex-shrink: 1; }
+.brand-wordmark { display: block; width: 156px; max-width: 100%; height: auto; }
+.toolbar { flex-shrink: 0; }
 .toolbar { display: flex; align-items: center; gap: 5px; }
 .text-button, .icon-button { border: 0; background: transparent; color: #68756c; }
 .text-button { min-height: 42px; padding: 8px 7px; font-size: 11px; font-weight: 600; }

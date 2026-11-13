@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 372 82">
+  <title>Mölkky Fun</title>
+  <g fill="none" stroke="#245c46" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 60 V22 L31 47 L50 22 V60"/>
+    <path d="M67 47 C72 63 92 63 97 47"/>
+    <path d="M115 22 V54 Q115 60 121 60"/>
+    <path d="M137 22 V60 M158 37 L138 49 L160 60"/>
+    <path d="M175 22 V60 M196 37 L176 49 L198 60"/>
+    <path d="M211 37 L222 59 M237 37 L221 70 Q217 77 210 74"/>
+    <path d="M261 60 V22 H285 M261 40 H281"/>
+    <path d="M300 37 V50 Q300 61 310 61 Q321 61 321 50 V37 M321 50 V60"/>
+    <path d="M339 60 V37 M339 47 Q339 36 350 36 Q361 36 361 47 V60"/>
+  </g>
+  <g fill="#245c46">
+    <circle cx="73" cy="32" r="3.7"/>
+    <circle cx="91" cy="32" r="3.7"/>
+  </g>
+</svg>

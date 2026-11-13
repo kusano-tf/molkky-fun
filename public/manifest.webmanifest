@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "Molkky Fun",
-  "short_name": "Molkky Fun",
+  "name": "Mölkky Fun",
+  "short_name": "Mölkky Fun",
   "description": "モルックの得点をかんたんに記録できるスコアアプリ",
   "lang": "ja",
   "start_url": "./",
@@ -12,6 +12,6 @@
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

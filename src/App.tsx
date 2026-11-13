@@ -485,9 +485,8 @@ function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <a className="brand" href="#" onClick={(event) => event.preventDefault()} aria-label="Molkky Fun">
-          <span className="brand-mark" aria-hidden="true">木</span>
-          <span><strong>Molkky Fun</strong><small>投げて、記録して、楽しもう。</small></span>
+        <a className="brand" href="#" onClick={(event) => event.preventDefault()} aria-label="Mölkky Fun">
+          <img className="brand-wordmark" src={`${import.meta.env.BASE_URL}icons/wordmark.svg`} alt="Mölkky Fun" />
         </a>
         <div className="toolbar">
           <button className="text-button" onClick={() => setShowHistory((visible) => !visible)}>
