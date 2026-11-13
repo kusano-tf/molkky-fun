@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { toBlob } from "html-to-image";
 import { OverlayDialog } from "./OverlayDialog";
+import { AppGuide } from "./AppGuide";
 import {
   createGame,
   emptyData,
@@ -351,6 +352,7 @@ function App() {
   const [notice, setNotice] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const [selectedHistoryGameId, setSelectedHistoryGameId] = useState<string | null>(null);
   const [showCareerAnalysis, setShowCareerAnalysis] = useState(false);
   const [careerBackTarget, setCareerBackTarget] = useState<"menu" | "history">("menu");
@@ -705,6 +707,7 @@ function App() {
         </a>
         <div className="toolbar">
           <button className="icon-button menu-toggle" aria-label="メニューを開く" aria-haspopup="dialog" aria-expanded={menuOpen} onClick={() => {
+            setShowGuide(false);
             setShowHistory(false);
             setSelectedHistoryGameId(null);
             setMenuOpen(true);
@@ -723,10 +726,10 @@ function App() {
 
       <OverlayDialog
         open={menuOpen}
-        title={selectedHistoryGame ? "試合結果" : showHistory ? (showCareerAnalysis ? "個人分析" : "試合履歴") : "メニュー"}
-        pageKey={selectedHistoryGame?.id ?? (showHistory ? (showCareerAnalysis ? "career" : "history") : "menu")}
+        title={showGuide ? "使い方・分析指標" : selectedHistoryGame ? "試合結果" : showHistory ? (showCareerAnalysis ? "個人分析" : "試合履歴") : "メニュー"}
+        pageKey={showGuide ? "guide" : selectedHistoryGame?.id ?? (showHistory ? (showCareerAnalysis ? "career" : "history") : "menu")}
         onClose={() => setMenuOpen(false)}
-        onBack={selectedHistoryGame ? () => setSelectedHistoryGameId(null)
+        onBack={showGuide ? () => setShowGuide(false) : selectedHistoryGame ? () => setSelectedHistoryGameId(null)
           : showHistory ? () => {
             if (showCareerAnalysis) {
               setShowCareerAnalysis(false);
@@ -743,12 +746,13 @@ function App() {
             accept="application/json,.json"
             onChange={(event) => void importData(event.target.files?.[0])}
           />
-        {!showHistory ? (
+        {showGuide ? <AppGuide /> : !showHistory ? (
           <nav className="menu-options" aria-label="アプリメニュー">
             <button type="button" onClick={() => { setShowCareerAnalysis(false); setShowHistory(true); }}>試合履歴 <span>{data.history.length} 試合 →</span></button>
             <button type="button" onClick={() => { setCareerBackTarget("menu"); setShowCareerAnalysis(true); setShowHistory(true); }}>全試合の個人分析 <span>→</span></button>
             <button type="button" onClick={exportData}>データを書き出す <span>↓</span></button>
             <button type="button" onClick={() => fileInput.current?.click()}>データを読み込む <span>↑</span></button>
+            <button type="button" onClick={() => setShowGuide(true)}>使い方・分析指標 <span>→</span></button>
           </nav>
         ) : selectedHistoryGame ? (
           <GameResults game={selectedHistoryGame} isSharing={isSharing} onShare={shareAnalysis} />
@@ -856,11 +860,6 @@ function App() {
                         <span className="muted">{selectedCareerPlayer.throws} 投</span>
                       </div>
                       <CareerRadarChart values={selectedCareerPlayer.radarValues} />
-                      <p className="career-note">
-                        終了済み試合のみを集計。チーム戦の勝利は所属メンバー全員に加算します。平均得点は12点満点換算、安定度は成功投球のばらつきから算出します（2回未満は未計測）。
-                        10点以上率は投球前に残り13点以上ある場面だけで集計し、ミスも機会に含めます。対象の投球がない場合は未計測（レーダーでは0）です。
-                        あがり成功率は投球前の得点が38〜49点のとき、ぴったり50点で上がれた割合です。ミス・点数不足・50点超過も機会に含め、チーム戦では投げた本人に集計します。狙いの宣言ではなく投球結果に基づく指標です。機会がない場合は未計測（レーダーでは0）です。
-                      </p>
                     </div>
                   </div>
                   <button
@@ -888,9 +887,6 @@ function App() {
             <p className="eyebrow">MOLKKY SCOREKEEPER</p>
             <h1>今日の一投を、<br />気持ちよく記録。</h1>
             <p className="intro-copy">得点計算はおまかせ。みんなでゲームに集中しよう。</p>
-            <div className="rule-chips">
-              <span>50点ぴったりで勝利</span><span>50点を超えたら25点</span><span>3回ミスで失格</span>
-            </div>
             <div className="pin-illustration" aria-hidden="true">
               <span className="pin pin-one">1</span><span className="pin pin-two">7</span><span className="pin pin-three">12</span>
             </div>
@@ -923,11 +919,6 @@ function App() {
                 チーム戦
               </button>
             </div>
-            <p className="helper-text">
-              {mode === "team"
-                ? "チーム順に1投ずつ交代。順番は手動またはランダムで決められます。人数が違っても遊べます。"
-                : "選手を上下に並べ替えるか、ランダムにして最初に投げる順番を決めます。"}
-            </p>
             {mode === "team" && (
               <div className="team-setup">
                 <div className="list-subheading">
@@ -1087,7 +1078,7 @@ function App() {
             {data.history.length > 0 && (
               <details className="history-player-picker">
                 <summary>試合履歴から追加</summary>
-                <p className="helper-text">参加者を選んで追加できます。過去の個人成績も引き継ぎます。</p>
+                <p className="helper-text">参加者を選んで追加</p>
                 <div className="history-player-matches">
                   {data.history.map((pastGame) => (
                     <div className="history-player-match" key={pastGame.id}>
@@ -1194,7 +1185,6 @@ function App() {
                 <button className={`miss-button ${isLastChance ? "miss-button-danger" : ""}`} disabled={isFinished} onClick={() => submitThrow([])}>今回はミス</button>
               </div>
               <div className="throw-footer">
-                <span>3回連続ミスで失格</span>
                 <button className="text-button" disabled={!game!.turns.length} onClick={undoThrow}>↶ 1投戻す</button>
               </div>
             </aside>
@@ -1271,10 +1261,6 @@ function App() {
         </section>
       )}
 
-      <footer className="app-footer">
-        <span>モルックの標準ルールで計算しています。</span>
-        <span>この端末に自動保存</span>
-      </footer>
     </main>
   );
 }

@@ -67,15 +67,12 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .career-radar-card { margin-top: 12px; padding: 14px; border: 1px solid #eeefe8; border-radius: 14px; background: #fffefa; }
 .career-radar-card .section-heading { margin-bottom: 0; }
 .career-radar-chart { display: block; width: 100%; max-width: 320px; height: auto; margin: 6px auto 0; }
-.career-note { margin: 4px 0 0; color: #8c938b; font-size: 9px; line-height: 1.6; }
 
 .setup-layout { display: grid; grid-template-columns: 1fr; gap: 14px; margin: 20px auto 28px; }
 .intro-card { position: relative; min-height: 270px; padding: 18px 5px 25px; overflow: hidden; }
 .intro-card .eyebrow { color: #7e9c85; }
 .intro-card h1 { margin: 12px 0 9px; color: #214f3b; font-size: 34px; line-height: 1.35; letter-spacing: -.065em; }
 .intro-copy { max-width: 260px; color: #77847a; font-size: 12px; }
-.rule-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 14px; }
-.rule-chips span { padding: 7px 8px; border-radius: 999px; background: #e8eee6; color: #486451; font-size: 9px; font-weight: 600; }
 .pin-illustration { position: absolute; right: -25px; bottom: -13px; height: 148px; width: 310px; transform: scale(.65); transform-origin: bottom right; opacity: .7; }
 .pin { position: absolute; bottom: 0; display: grid; place-items: start center; width: 68px; height: 130px; padding-top: 31px; border: 2px solid #bd8f59; border-radius: 21px 21px 12px 12px; background: linear-gradient(90deg, #d6ad76, #f1d09d 48%, #c9975d); color: #fffaf0; font-size: 25px; font-weight: 700; box-shadow: inset 0 -12px #a97644, 0 10px 18px #3e34201a; }
 .pin::before { content: ""; position: absolute; top: 15px; width: 31px; height: 8px; border-radius: 50%; background: #f7ddb3; opacity: .75; }
@@ -207,7 +204,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .record-button { width: 100%; min-height: 50px; }
 .miss-button { width: 100%; min-height: 50px; padding: 8px; border: 1px solid #e8e8df; border-radius: 11px; background: white; color: #747d74; font-size: 11px; font-weight: 600; }
 .miss-button:hover:not(:disabled) { background: #faf5ef; }
-.throw-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 10px; border-top: 1px solid #efefe9; color: #a0a69e; font-size: 9px; }
+.throw-footer { display: flex; justify-content: flex-end; align-items: center; margin-top: 12px; padding-top: 10px; border-top: 1px solid #efefe9; color: #a0a69e; font-size: 9px; }
 .throw-footer .text-button { color: #768178; font-size: 10px; }
 .analysis-layout { display: grid; gap: 12px; margin: 14px auto 24px; }
 .analysis-share-content { display: grid; gap: 12px; padding: 10px; border-radius: 20px; background: #f5f3ed; }
@@ -290,5 +287,16 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .menu-options button { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 14px 16px; border: 1px solid #e5e8df; border-radius: 12px; background: var(--paper); color: var(--green); text-align: left; font-size: 14px; }
 .menu-options button span { flex-shrink: 0; font-size: 12px; }
 .menu-toggle { font-size: 22px; }
-.app-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; margin: 0 auto; padding: 14px 3px 0; border-top: 1px solid #e8e7df; color: #9da39b; font-size: 9px; }
+.app-guide { display: grid; gap: 16px; }
+.app-guide section { padding: 18px; border: 1px solid #e5e8df; border-radius: 14px; background: var(--paper); }
+.app-guide h3 { margin: 0 0 12px; color: var(--green); font-size: 16px; }
+.app-guide p, .app-guide li, .app-guide dd { color: #526057; font-size: 13px; line-height: 1.85; overflow-wrap: anywhere; }
+.app-guide p { margin: 10px 0 0; }
+.app-guide ul { margin: 0; padding-left: 20px; }
+.app-guide li + li { margin-top: 8px; }
+.app-guide dl { margin: 0; }
+.app-guide dt { margin-top: 16px; color: #293a30; font-size: 13px; font-weight: 700; }
+.app-guide dl > dt:first-child { margin-top: 0; }
+.app-guide p + dl { margin-top: 16px; }
+.app-guide dd { margin: 4px 0 0; }
 .history-names { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
