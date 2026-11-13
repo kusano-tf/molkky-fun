@@ -481,6 +481,18 @@ function App() {
     ]);
   }
 
+  function addHistoryPlayer(player: Player) {
+    setPlayers((current) => {
+      if (current.some((item) => item.id === player.id)) return current;
+      const team = teams.find((candidate) => candidate.id === player.teamId)
+        ?? teams.reduce<Team | undefined>((smallest, candidate) => {
+          const count = (id: string) => current.filter((item) => item.teamId === id).length;
+          return !smallest || count(candidate.id) < count(smallest.id) ? candidate : smallest;
+        }, undefined);
+      return [...current, { id: player.id, name: player.name, ...(team ? { teamId: team.id } : {}) }];
+    });
+  }
+
   const inSetup = !game;
 
   return (
@@ -830,7 +842,6 @@ function App() {
                   <button
                     className="remove-player"
                     type="button"
-                    disabled={players.length <= 2}
                     onClick={() => setPlayers((current) => current.filter((item) => item.id !== player.id))}
                     aria-label={`${player.name || `プレイヤー ${index + 1}`}を削除`}
                   >×</button>
@@ -841,6 +852,33 @@ function App() {
             <button className="add-player" type="button" onClick={addPlayer}>
               <span>＋</span> プレイヤーを追加
             </button>
+            {data.history.length > 0 && (
+              <details className="history-player-picker">
+                <summary>試合履歴から追加</summary>
+                <p className="helper-text">参加者を選んで追加できます。過去の個人成績も引き継ぎます。</p>
+                <div className="history-player-matches">
+                  {data.history.map((pastGame) => (
+                    <div className="history-player-match" key={pastGame.id}>
+                      <p>{formatDateTime(pastGame.startedAt)} · {pastGame.mode === "team" ? "チーム戦" : "個人戦"}</p>
+                      <div className="history-player-options">
+                        {pastGame.players.map((player) => {
+                          const added = players.some((item) => item.id === player.id);
+                          return (
+                            <button
+                              type="button"
+                              key={player.id}
+                              disabled={added}
+                              onClick={() => addHistoryPlayer(player)}
+                              aria-label={`${player.name}${added ? "は追加済み" : "を参加者に追加"}`}
+                            >{added ? "✓ " : "＋ "}{player.name}{added ? "（追加済み）" : ""}</button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
             <button className="primary-button start-button" type="submit">ゲームを始める <span>→</span></button>
           </form>
         </section>
