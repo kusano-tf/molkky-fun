@@ -41,7 +41,11 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .eyebrow { margin: 0; color: #9aa198; font-size: 9px; font-weight: 700; letter-spacing: .16em; }
 .muted, .helper-text, .empty-copy { color: var(--muted); font-size: 12px; }
 .history-list { margin: 16px 0 0; padding: 0; list-style: none; }
-.history-list li { display: grid; grid-template-columns: 75px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 12px 0; border-top: 1px solid #f0f0eb; font-size: 11px; }
+.history-list li { border-top: 1px solid #f0f0eb; }
+.history-result-button { display: grid; width: 100%; gap: 8px; padding: 14px 4px; text-align: left; border: 0; background: transparent; font-size: 12px; }
+.history-result-button:hover { background: #f0f4ed; }
+.history-result-button .history-date { font-size: 10px; }
+.history-result-button strong { display: flex; justify-content: space-between; gap: 8px; }
 .history-date { color: #8d958d; }
 .history-names { color: #657269; }
 .history-list strong { color: var(--green); }
@@ -243,5 +247,19 @@ button:disabled { cursor: not-allowed; opacity: .48; }
   box-shadow: 0 -6px 24px #28382f0c;
   backdrop-filter: blur(12px);
 }
+.overlay-dialog { position: fixed; inset: 0; width: 100%; max-width: none; height: 100%; height: 100dvh; max-height: none; margin: 0; padding: 0; border: 0; background: transparent; color: inherit; overflow: hidden; }
+.overlay-dialog::backdrop { background: #182b2466; backdrop-filter: blur(3px); }
+.overlay-panel { display: flex; flex-direction: column; width: min(100%, 480px); height: 100%; margin-left: auto; background: #f5f3ed; box-shadow: -12px 0 40px #182b2426; }
+.overlay-header { display: flex; align-items: center; gap: 12px; flex-shrink: 0; padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px; border-bottom: 1px solid #e5e8df; }
+.overlay-header h2 { flex: 1; margin: 0; font-size: 18px; }
+.overlay-header h2:focus { outline: none; }
+.overlay-content { min-height: 0; flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
+.overlay-content .history-panel { margin: 0; padding: 16px; box-shadow: none; }
+.overlay-content .career-analysis { margin-top: 0; padding-top: 0; border-top: 0; }
+.overlay-content .analysis-layout { margin-top: 0; }
+.menu-options { display: grid; gap: 10px; }
+.menu-options button { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 14px 16px; border: 1px solid #e5e8df; border-radius: 12px; background: var(--paper); color: var(--green); text-align: left; font-size: 14px; }
+.menu-options button span { flex-shrink: 0; font-size: 12px; }
+.menu-toggle { font-size: 22px; }
 .app-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; margin: 0 auto; padding: 14px 3px 0; border-top: 1px solid #e8e7df; color: #9da39b; font-size: 9px; }
 .history-names { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

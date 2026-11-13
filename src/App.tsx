@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { toBlob } from "html-to-image";
+import { OverlayDialog } from "./OverlayDialog";
 import {
   createGame,
   emptyData,
@@ -144,6 +145,200 @@ function downloadBlob(blob: Blob, fileName: string) {
   URL.revokeObjectURL(url);
 }
 
+function GameResults({ game, isSharing, onShare, onNewGame }: {
+  game: Game;
+  isSharing: boolean;
+  onShare: (target: HTMLDivElement | null) => Promise<void>;
+  onNewGame?: () => void;
+}) {
+  const analysisImageRef = useRef<HTMLDivElement>(null);
+  const analysis = useMemo(() => getGameAnalysis(game), [game]);
+  const winner = getScoreUnits(game).find((unit) => unit.id === analysis.status.winnerId);
+  const historyColumns = analysis.units.map((unitStats) => ({
+    unitStats,
+    turns: game.turns.map((turn, turnIndex) => ({ turn, turnIndex }))
+      .filter(({ turn }) => unitStats.unit.playerIds.includes(turn.playerId)),
+  }));
+  const historyRowCount = Math.max(0, ...historyColumns.map((column) => column.turns.length));
+  return (
+    <section className="analysis-layout">
+      <div className="analysis-share-content" ref={analysisImageRef}>
+      <div className="analysis-hero">
+        <div>
+          <p className="eyebrow">MATCH ANALYSIS</p>
+          <h1>{winner ? `${winner.name} の勝ち！` : "試合終了"}</h1>
+          <p className="analysis-result-copy">
+            {winner ? "ナイスゲーム！おめでとうございます。" : "全員が失格となりました。"}
+          </p>
+          <div className="analysis-meta">
+            <span>{formatDateTime(game.startedAt)}</span>
+            <span>{game.turns.length} 投</span>
+            <span>{formatDuration(game.startedAt, analysis.completedAt)}</span>
+          </div>
+        </div>
+        <span className="winner-icon" aria-hidden="true">✦</span>
+      </div>
+
+      <section className="analysis-section">
+        <div className="section-heading">
+          <div><p className="eyebrow">FINAL SCORE</p><h2>最終スコアと成績</h2></div>
+        </div>
+        <div className="analysis-unit-list">
+          {analysis.units.map((unitStats, index) => {
+            const memberNames = unitStats.unit.playerIds
+              .map((playerId) => game.players.find((player) => player.id === playerId)?.name)
+              .filter((name): name is string => Boolean(name));
+            return (
+              <article className="analysis-unit-card" key={unitStats.unit.id}>
+                <div className="analysis-unit-heading">
+                  <span className={`player-dot dot-${index % 6}`}>{String(index + 1).padStart(2, "0")}</span>
+                  <div className="analysis-unit-name">
+                    <strong>{unitStats.unit.name}</strong>
+                    {game.mode === "team" && <small>{memberNames.join(" ・ ")}</small>}
+                  </div>
+                  <b>{unitStats.finalScore}<small> / 50</small></b>
+                </div>
+                <div className="analysis-stat-grid">
+                  <div><span>投球数</span><strong>{unitStats.throws}</strong></div>
+                  <div><span>得点した投球</span><strong>{unitStats.scoringThrows}</strong></div>
+                  <div><span>ミス</span><strong>{unitStats.misses}</strong></div>
+                  <div><span>成功率</span><strong>{unitStats.accuracy === null ? "—" : `${unitStats.accuracy.toFixed(0)}%`}</strong></div>
+                  <div><span>平均得点 / 投</span><strong>{unitStats.averagePoints === null ? "—" : unitStats.averagePoints.toFixed(1)}</strong></div>
+                  <div><span>最高得点</span><strong>{unitStats.bestThrow ?? "—"}</strong></div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="analysis-section">
+        <div className="section-heading">
+          <div><p className="eyebrow">SCORE PROGRESS</p><h2>得点の推移</h2></div>
+          <span className="muted">{game.turns.length} 投</span>
+        </div>
+        <svg className="score-chart" viewBox="0 0 360 180" role="img" aria-label="試合中の得点推移">
+          <line x1="34" y1="40" x2="342" y2="40" stroke="#e8ebe4" strokeWidth={1} />
+          <line x1="34" y1="90" x2="342" y2="90" stroke="#e8ebe4" strokeWidth={1} />
+          <line x1="34" y1="140" x2="342" y2="140" stroke="#e8ebe4" strokeWidth={1} />
+          <text x="5" y="44" fill="#9aa198" fontFamily="sans-serif" fontSize={9}>50</text>
+          <text x="5" y="94" fill="#9aa198" fontFamily="sans-serif" fontSize={9}>25</text>
+          <text x="13" y="144" fill="#9aa198" fontFamily="sans-serif" fontSize={9}>0</text>
+          <text x="30" y="165" fill="#9aa198" fontFamily="sans-serif" fontSize={9}>開始</text>
+          <text x="342" y="165" textAnchor="end" fill="#9aa198" fontFamily="sans-serif" fontSize={9}>{game.turns.length} 投</text>
+          {analysis.units.map((unitStats, index) => {
+            const maxTurn = Math.max(1, analysis.progress.length);
+            const chartPoints = [
+              "34,140",
+              ...analysis.progress.map((snapshot) => {
+                const x = 34 + (308 * snapshot.turnNumber) / maxTurn;
+                const y = 140 - 2 * snapshot.scores[unitStats.unit.id];
+                return `${x},${y}`;
+              }),
+            ].join(" ");
+            const lastScore =
+              analysis.progress.at(-1)?.scores[unitStats.unit.id] ?? 0;
+            return (
+              <g key={unitStats.unit.id}>
+                <polyline
+                  points={chartPoints}
+                  fill="none"
+                  stroke={ANALYSIS_COLORS[index % ANALYSIS_COLORS.length]}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                />
+                <circle
+                  cx="342"
+                  cy={140 - 2 * lastScore}
+                  r="4"
+                  fill={ANALYSIS_COLORS[index % ANALYSIS_COLORS.length]}
+                  stroke="#fffefa"
+                  strokeWidth={2}
+                />
+              </g>
+            );
+          })}
+        </svg>
+        <div className="chart-legend">
+          {analysis.units.map((unitStats, index) => (
+            <span key={unitStats.unit.id}>
+              <i style={{ backgroundColor: ANALYSIS_COLORS[index % ANALYSIS_COLORS.length] }} />
+              {unitStats.unit.name}
+            </span>
+          ))}
+        </div>
+      </section>
+
+      <section className="analysis-section analysis-history-section">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">SCORE HISTORY</p>
+            <h2>{game.mode === "team" ? "チームごとの得点履歴" : "選手ごとの得点履歴"}</h2>
+          </div>
+          <span className="muted">{game.turns.length} 投</span>
+        </div>
+        <div className="analysis-history-scroll">
+          <div
+            className="analysis-history-grid"
+            style={{
+              gridTemplateColumns: `26px repeat(${analysis.units.length}, minmax(88px, 1fr))`,
+            }}
+          >
+            <div className="history-matrix-number-heading">#</div>
+            {analysis.units.map((unitStats) => (
+              <div className="history-matrix-unit-heading" key={unitStats.unit.id}>
+                <strong>{unitStats.unit.name}</strong>
+                <b>{unitStats.finalScore}<small> / 50</small></b>
+              </div>
+            ))}
+            {Array.from({ length: historyRowCount }, (_, rowIndex) => (
+              <Fragment key={rowIndex}>
+                <div className="history-matrix-turn-number">{rowIndex + 1}</div>
+                {historyColumns.map(({ unitStats, turns }) => {
+                  const item = turns[rowIndex];
+                  if (!item) {
+                    return <div className="history-matrix-empty" key={unitStats.unit.id} aria-hidden="true" />;
+                  }
+                  const { turn, turnIndex } = item;
+                  const player = game.players.find((candidate) => candidate.id === turn.playerId);
+                  const points = scoreThrow(turn.pins);
+                  return (
+                    <div className="history-matrix-cell" key={unitStats.unit.id}>
+                      <div>
+                        <b>{turn.pins.length ? `+${points}` : "ミス"}</b>
+                        <span>{analysis.progress[turnIndex].scores[unitStats.unit.id]} 点</span>
+                      </div>
+                      <small>
+                        {game.mode === "team" ? `${player?.name ?? ""} · ` : ""}
+                        {turn.pins.length ? turn.pins.join("・") : "—"}
+                      </small>
+                    </div>
+                  );
+                })}
+              </Fragment>
+            ))}
+          </div>
+        </div>
+      </section>
+      </div>
+
+      <button
+        className="primary-button analysis-share-button"
+        onClick={() => void onShare(analysisImageRef.current)}
+        disabled={isSharing}
+      >
+        {isSharing ? "画像を準備中…" : "試合結果をシェア"} <span>↗</span>
+      </button>
+      {onNewGame && <div className="bottom-action-bar">
+        <button className="primary-button analysis-new-game" onClick={onNewGame}>
+          新しいゲームを始める <span>→</span>
+        </button>
+      </div>}
+    </section>
+  );
+}
+
 function App() {
   const initial = useRef(loadData()).current;
   const [data, setData] = useState(initial.data);
@@ -155,10 +350,12 @@ function App() {
   const [selectedPins, setSelectedPins] = useState<number[]>([]);
   const [notice, setNotice] = useState("");
   const [showHistory, setShowHistory] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [selectedHistoryGameId, setSelectedHistoryGameId] = useState<string | null>(null);
   const [showCareerAnalysis, setShowCareerAnalysis] = useState(false);
+  const [careerBackTarget, setCareerBackTarget] = useState<"menu" | "history">("menu");
   const [selectedCareerPlayerId, setSelectedCareerPlayerId] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
-  const analysisImageRef = useRef<HTMLDivElement>(null);
   const careerAnalysisImageRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
 
@@ -181,7 +378,7 @@ function App() {
   const scoreUnits = game ? getScoreUnits(game) : [];
   const winner = scoreUnits.find((unit) => unit.id === status?.winnerId);
   const isFinished = status?.isFinished ?? false;
-  const screenKey = `${game?.id ?? "setup"}:${isFinished ? "result" : "play"}:${showHistory ? "history" : "main"}`;
+  const screenKey = `${game?.id ?? "setup"}:${isFinished ? "result" : "play"}`;
   const previousScreenKey = useRef(screenKey);
 
   useEffect(() => {
@@ -190,19 +387,6 @@ function App() {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }, [screenKey]);
 
-  const analysis = useMemo(
-    () => (game && isFinished ? getGameAnalysis(game) : null),
-    [game, isFinished],
-  );
-  const historyColumns = game && analysis
-    ? analysis.units.map((unitStats) => ({
-        unitStats,
-        turns: game.turns
-          .map((turn, turnIndex) => ({ turn, turnIndex }))
-          .filter(({ turn }) => unitStats.unit.playerIds.includes(turn.playerId)),
-      }))
-    : [];
-  const historyRowCount = Math.max(0, ...historyColumns.map((column) => column.turns.length));
   const playerCareerStats = useMemo(() => {
     const completedGames =
       game && isFinished && !data.history.some((pastGame) => pastGame.id === game.id)
@@ -214,6 +398,7 @@ function App() {
     playerCareerStats.find((player) => player.playerId === selectedCareerPlayerId) ??
     playerCareerStats[0] ??
     null;
+  const selectedHistoryGame = data.history.find((pastGame) => pastGame.id === selectedHistoryGameId);
 
   function startGame(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -352,9 +537,9 @@ function App() {
     }
   }
 
-  async function shareAnalysis() {
+  async function shareAnalysis(target: HTMLDivElement | null) {
     await shareImage(
-      analysisImageRef.current,
+      target,
       `molkky-fun-result-${new Date().toISOString().slice(0, 10)}.png`,
       "Molkky Fun 試合結果",
       "試合結果",
@@ -379,6 +564,9 @@ function App() {
       }
       if (!window.confirm("現在のゲームデータを、選択したファイルの内容に置き換えますか？")) return;
       setData(parsed);
+      setSelectedPins([]);
+      setSelectedHistoryGameId(null);
+      setMenuOpen(false);
       setNotice("ゲームデータを読み込みました。");
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "ファイルを読み込めませんでした。");
@@ -511,18 +699,13 @@ function App() {
           <img className="brand-wordmark" src={`${import.meta.env.BASE_URL}icons/wordmark.svg`} alt="Mölkky Fun" />
         </a>
         <div className="toolbar">
-          <button className="text-button" onClick={() => setShowHistory((visible) => !visible)}>
-            {showHistory ? "履歴を閉じる" : `試合履歴 ${data.history.length}`}
+          <button className="icon-button menu-toggle" aria-label="メニューを開く" aria-haspopup="dialog" aria-expanded={menuOpen} onClick={() => {
+            setShowHistory(false);
+            setSelectedHistoryGameId(null);
+            setMenuOpen(true);
+          }}>
+            <span aria-hidden="true">☰</span>
           </button>
-          <button className="icon-button" onClick={exportData} aria-label="データを書き出す" title="データを書き出す">↓</button>
-          <button className="icon-button" onClick={() => fileInput.current?.click()} aria-label="データを読み込む" title="データを読み込む">↑</button>
-          <input
-            ref={fileInput}
-            className="visually-hidden"
-            type="file"
-            accept="application/json,.json"
-            onChange={(event) => void importData(event.target.files?.[0])}
-          />
         </div>
       </header>
 
@@ -533,8 +716,40 @@ function App() {
         </div>
       )}
 
-      {showHistory && (
+      <OverlayDialog
+        open={menuOpen}
+        title={selectedHistoryGame ? "試合結果" : showHistory ? (showCareerAnalysis ? "個人分析" : "試合履歴") : "メニュー"}
+        pageKey={selectedHistoryGame?.id ?? (showHistory ? (showCareerAnalysis ? "career" : "history") : "menu")}
+        onClose={() => setMenuOpen(false)}
+        onBack={selectedHistoryGame ? () => setSelectedHistoryGameId(null)
+          : showHistory ? () => {
+            if (showCareerAnalysis) {
+              setShowCareerAnalysis(false);
+              setShowHistory(careerBackTarget === "history");
+            } else {
+              setShowHistory(false);
+            }
+          } : undefined}
+      >
+          <input
+            ref={fileInput}
+            className="visually-hidden"
+            type="file"
+            accept="application/json,.json"
+            onChange={(event) => void importData(event.target.files?.[0])}
+          />
+        {!showHistory ? (
+          <nav className="menu-options" aria-label="アプリメニュー">
+            <button type="button" onClick={() => { setShowCareerAnalysis(false); setShowHistory(true); }}>試合履歴 <span>{data.history.length} 試合 →</span></button>
+            <button type="button" onClick={() => { setCareerBackTarget("menu"); setShowCareerAnalysis(true); setShowHistory(true); }}>全試合の個人分析 <span>→</span></button>
+            <button type="button" onClick={exportData}>データを書き出す <span>↓</span></button>
+            <button type="button" onClick={() => fileInput.current?.click()}>データを読み込む <span>↑</span></button>
+          </nav>
+        ) : selectedHistoryGame ? (
+          <GameResults game={selectedHistoryGame} isSharing={isSharing} onShare={shareAnalysis} />
+        ) : (
         <section className="history-panel">
+          {!showCareerAnalysis && <>
           <div className="section-heading">
             <div><p className="eyebrow">PAST GAMES</p><h2>試合履歴</h2></div>
             <div className="history-panel-actions">
@@ -542,10 +757,8 @@ function App() {
               <button
                 className="text-button"
                 type="button"
-                aria-expanded={showCareerAnalysis}
-                aria-controls="career-analysis"
-                onClick={() => setShowCareerAnalysis((visible) => !visible)}
-              >{showCareerAnalysis ? "個人分析を閉じる" : "全試合の個人分析"}</button>
+                onClick={() => { setCareerBackTarget("history"); setShowCareerAnalysis(true); }}
+              >全試合の個人分析</button>
             </div>
           </div>
           {data.history.length === 0 ? (
@@ -557,18 +770,21 @@ function App() {
                 const pastWinner = getScoreUnits(pastGame).find((unit) => unit.id === pastStatus.winnerId);
                 return (
                   <li key={pastGame.id}>
-                    <span className="history-date">{new Date(pastGame.startedAt).toLocaleDateString("ja-JP")}</span>
+                    <button className="history-result-button" type="button" onClick={() => setSelectedHistoryGameId(pastGame.id)}>
+                    <span className="history-date">{formatDateTime(pastGame.startedAt)}</span>
                     <span className="history-names">
                       {pastGame.mode === "team"
                         ? (pastGame.teams ?? []).map((team) => team.name).join(" ・ ")
                         : pastGame.players.map((player) => player.name).join(" ・ ")}
                     </span>
-                    <strong>{pastWinner?.name ?? "終了"}</strong>
+                    <strong>{pastWinner ? `${pastWinner.name} の勝ち` : "終了"} <span aria-hidden="true">→</span></strong>
+                    </button>
                   </li>
                 );
               })}
             </ul>
           )}
+          </>}
           {showCareerAnalysis && (
             <section className="career-analysis" id="career-analysis">
               <div className="section-heading">
@@ -657,7 +873,9 @@ function App() {
             </section>
           )}
         </section>
-      )}
+        )}
+        {(storageError || notice) && <p className="notice" role="status">{storageError || notice}</p>}
+      </OverlayDialog>
 
       {inSetup ? (
         <section className="setup-layout">
@@ -894,181 +1112,7 @@ function App() {
           </form>
         </section>
       ) : isFinished ? (
-        <section className="analysis-layout">
-          <div className="analysis-share-content" ref={analysisImageRef}>
-          <div className="analysis-hero">
-            <div>
-              <p className="eyebrow">MATCH ANALYSIS</p>
-              <h1>{winner ? `${winner.name} の勝ち！` : "試合終了"}</h1>
-              <p className="analysis-result-copy">
-                {winner ? "ナイスゲーム！おめでとうございます。" : "全員が失格となりました。"}
-              </p>
-              <div className="analysis-meta">
-                <span>{formatDateTime(game!.startedAt)}</span>
-                <span>{game!.turns.length} 投</span>
-                <span>{formatDuration(game!.startedAt, analysis!.completedAt)}</span>
-              </div>
-            </div>
-            <span className="winner-icon" aria-hidden="true">✦</span>
-          </div>
-
-          <section className="analysis-section">
-            <div className="section-heading">
-              <div><p className="eyebrow">FINAL SCORE</p><h2>最終スコアと成績</h2></div>
-            </div>
-            <div className="analysis-unit-list">
-              {analysis!.units.map((unitStats, index) => {
-                const memberNames = unitStats.unit.playerIds
-                  .map((playerId) => game!.players.find((player) => player.id === playerId)?.name)
-                  .filter((name): name is string => Boolean(name));
-                return (
-                  <article className="analysis-unit-card" key={unitStats.unit.id}>
-                    <div className="analysis-unit-heading">
-                      <span className={`player-dot dot-${index % 6}`}>{String(index + 1).padStart(2, "0")}</span>
-                      <div className="analysis-unit-name">
-                        <strong>{unitStats.unit.name}</strong>
-                        {game!.mode === "team" && <small>{memberNames.join(" ・ ")}</small>}
-                      </div>
-                      <b>{unitStats.finalScore}<small> / 50</small></b>
-                    </div>
-                    <div className="analysis-stat-grid">
-                      <div><span>投球数</span><strong>{unitStats.throws}</strong></div>
-                      <div><span>得点した投球</span><strong>{unitStats.scoringThrows}</strong></div>
-                      <div><span>ミス</span><strong>{unitStats.misses}</strong></div>
-                      <div><span>成功率</span><strong>{unitStats.accuracy === null ? "—" : `${unitStats.accuracy.toFixed(0)}%`}</strong></div>
-                      <div><span>平均得点 / 投</span><strong>{unitStats.averagePoints === null ? "—" : unitStats.averagePoints.toFixed(1)}</strong></div>
-                      <div><span>最高得点</span><strong>{unitStats.bestThrow ?? "—"}</strong></div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-
-          <section className="analysis-section">
-            <div className="section-heading">
-              <div><p className="eyebrow">SCORE PROGRESS</p><h2>得点の推移</h2></div>
-              <span className="muted">{game!.turns.length} 投</span>
-            </div>
-            <svg className="score-chart" viewBox="0 0 360 180" role="img" aria-label="試合中の得点推移">
-              <line x1="34" y1="40" x2="342" y2="40" stroke="#e8ebe4" strokeWidth={1} />
-              <line x1="34" y1="90" x2="342" y2="90" stroke="#e8ebe4" strokeWidth={1} />
-              <line x1="34" y1="140" x2="342" y2="140" stroke="#e8ebe4" strokeWidth={1} />
-              <text x="5" y="44" fill="#9aa198" fontFamily="sans-serif" fontSize={9}>50</text>
-              <text x="5" y="94" fill="#9aa198" fontFamily="sans-serif" fontSize={9}>25</text>
-              <text x="13" y="144" fill="#9aa198" fontFamily="sans-serif" fontSize={9}>0</text>
-              <text x="30" y="165" fill="#9aa198" fontFamily="sans-serif" fontSize={9}>開始</text>
-              <text x="342" y="165" textAnchor="end" fill="#9aa198" fontFamily="sans-serif" fontSize={9}>{game!.turns.length} 投</text>
-              {analysis!.units.map((unitStats, index) => {
-                const maxTurn = Math.max(1, analysis!.progress.length);
-                const chartPoints = [
-                  "34,140",
-                  ...analysis!.progress.map((snapshot) => {
-                    const x = 34 + (308 * snapshot.turnNumber) / maxTurn;
-                    const y = 140 - 2 * snapshot.scores[unitStats.unit.id];
-                    return `${x},${y}`;
-                  }),
-                ].join(" ");
-                const lastScore =
-                  analysis!.progress.at(-1)?.scores[unitStats.unit.id] ?? 0;
-                return (
-                  <g key={unitStats.unit.id}>
-                    <polyline
-                      points={chartPoints}
-                      fill="none"
-                      stroke={ANALYSIS_COLORS[index % ANALYSIS_COLORS.length]}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2.5}
-                    />
-                    <circle
-                      cx="342"
-                      cy={140 - 2 * lastScore}
-                      r="4"
-                      fill={ANALYSIS_COLORS[index % ANALYSIS_COLORS.length]}
-                      stroke="#fffefa"
-                      strokeWidth={2}
-                    />
-                  </g>
-                );
-              })}
-            </svg>
-            <div className="chart-legend">
-              {analysis!.units.map((unitStats, index) => (
-                <span key={unitStats.unit.id}>
-                  <i style={{ backgroundColor: ANALYSIS_COLORS[index % ANALYSIS_COLORS.length] }} />
-                  {unitStats.unit.name}
-                </span>
-              ))}
-            </div>
-          </section>
-
-          <section className="analysis-section analysis-history-section">
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow">SCORE HISTORY</p>
-                <h2>{game!.mode === "team" ? "チームごとの得点履歴" : "選手ごとの得点履歴"}</h2>
-              </div>
-              <span className="muted">{game!.turns.length} 投</span>
-            </div>
-            <div className="analysis-history-scroll">
-              <div
-                className="analysis-history-grid"
-                style={{
-                  gridTemplateColumns: `26px repeat(${analysis!.units.length}, minmax(88px, 1fr))`,
-                }}
-              >
-                <div className="history-matrix-number-heading">#</div>
-                {analysis!.units.map((unitStats) => (
-                  <div className="history-matrix-unit-heading" key={unitStats.unit.id}>
-                    <strong>{unitStats.unit.name}</strong>
-                    <b>{unitStats.finalScore}<small> / 50</small></b>
-                  </div>
-                ))}
-                {Array.from({ length: historyRowCount }, (_, rowIndex) => (
-                  <Fragment key={rowIndex}>
-                    <div className="history-matrix-turn-number">{rowIndex + 1}</div>
-                    {historyColumns.map(({ unitStats, turns }) => {
-                      const item = turns[rowIndex];
-                      if (!item) {
-                        return <div className="history-matrix-empty" key={unitStats.unit.id} aria-hidden="true" />;
-                      }
-                      const { turn, turnIndex } = item;
-                      const player = game!.players.find((candidate) => candidate.id === turn.playerId);
-                      const points = scoreThrow(turn.pins);
-                      return (
-                        <div className="history-matrix-cell" key={unitStats.unit.id}>
-                          <div>
-                            <b>{turn.pins.length ? `+${points}` : "ミス"}</b>
-                            <span>{analysis!.progress[turnIndex].scores[unitStats.unit.id]} 点</span>
-                          </div>
-                          <small>
-                            {game!.mode === "team" ? `${player?.name ?? ""} · ` : ""}
-                            {turn.pins.length ? turn.pins.join("・") : "—"}
-                          </small>
-                        </div>
-                      );
-                    })}
-                  </Fragment>
-                ))}
-              </div>
-            </div>
-          </section>
-          </div>
-
-          <button
-            className="primary-button analysis-share-button"
-            onClick={() => void shareAnalysis()}
-            disabled={isSharing}
-          >
-            {isSharing ? "画像を準備中…" : "試合結果をシェア"} <span>↗</span>
-          </button>
-          <div className="bottom-action-bar">
-            <button className="primary-button analysis-new-game" onClick={startAnotherGame}>
-              新しいゲームを始める <span>→</span>
-            </button>
-          </div>
-        </section>
+        <GameResults game={game!} isSharing={isSharing} onShare={shareAnalysis} onNewGame={startAnotherGame} />
       ) : (
         <section className="game-layout">
           <div className="game-main">
