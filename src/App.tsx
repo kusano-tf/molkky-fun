@@ -888,7 +888,9 @@ function App() {
                 </div>
               </details>
             )}
-            <button className="primary-button start-button" type="submit">ゲームを始める <span>→</span></button>
+            <div className="bottom-action-bar">
+              <button className="primary-button start-button" type="submit">ゲームを始める <span>→</span></button>
+            </div>
           </form>
         </section>
       ) : isFinished ? (
@@ -1061,9 +1063,11 @@ function App() {
           >
             {isSharing ? "画像を準備中…" : "試合結果をシェア"} <span>↗</span>
           </button>
-          <button className="primary-button analysis-new-game" onClick={startAnotherGame}>
-            新しいゲームを始める <span>→</span>
-          </button>
+          <div className="bottom-action-bar">
+            <button className="primary-button analysis-new-game" onClick={startAnotherGame}>
+              新しいゲームを始める <span>→</span>
+            </button>
+          </div>
         </section>
       ) : (
         <section className="game-layout">
@@ -1109,9 +1113,9 @@ function App() {
                 <strong>{selectedPins.length ? scoreThrow(selectedPins) : "—"}<small> 点</small></strong>
                 <small>{selectedPins.length === 1 ? "ピンの数字が得点" : selectedPins.length > 1 ? "倒れた本数が得点" : "ピンを選択してください"}</small>
               </div>
-              <div className="throw-actions">
+              <div className="throw-actions bottom-action-bar">
                 <button className="primary-button record-button" disabled={!selectedPins.length || isFinished} onClick={() => submitThrow(selectedPins)}>
-                  得点を記録する <span>→</span>
+                  {selectedPins.length ? `${scoreThrow(selectedPins)}点を記録する` : "得点を記録する"} <span>→</span>
                 </button>
                 <button className="miss-button" disabled={isFinished} onClick={() => submitThrow([])}>今回はミス</button>
               </div>
