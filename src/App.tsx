@@ -484,7 +484,7 @@ function App() {
 
   function startAnotherGame() {
     if (live.viewer) return;
-    if (game && !isFinished && !window.confirm("進行中のゲームを終了して、新しいゲームを始めますか？")) {
+    if (game && !isFinished && !window.confirm("現在の試合の得点・投球記録を破棄して、プレイヤー登録に戻りますか？ メンバーと投球順は引き継ぎます。")) {
       return;
     }
     if (game) {
@@ -500,6 +500,27 @@ function App() {
     setData((current) => ({ ...current, currentGame: null }));
     setSelectedPins([]);
     setNotice("");
+    setMenuOpen(false);
+  }
+
+  function restartGame() {
+    if (live.viewer || !game) return;
+    if (!window.confirm("同じメンバー・投球順で最初から始めますか？ 現在の試合の得点・投球記録はリセットされます。終了済みの試合履歴は残ります。")) return;
+    setData((current) => ({
+      ...current,
+      currentGame: createGame(game.players, game.mode ?? "individual", game.teams ?? []),
+    }));
+    setSelectedPins([]);
+    setNotice("");
+    setMenuOpen(false);
+  }
+
+  function openGameActions() {
+    setShowLiveSharing(false);
+    setShowGuide(false);
+    setShowHistory(false);
+    setSelectedHistoryGameId(null);
+    setMenuOpen(true);
   }
 
   function exportData() {
@@ -718,6 +739,7 @@ function App() {
           <img className="brand-wordmark" src={`${import.meta.env.BASE_URL}icons/wordmark.svg`} alt="Mölkky Fun" />
         </a>
         <div className="toolbar">
+          {game && !live.viewer && <button className="text-button game-actions-toggle" onClick={openGameActions} aria-haspopup="dialog">試合の操作</button>}
           {live.host && <button className="text-button live-host-status" onClick={() => {
             setShowLiveSharing(true); setMenuOpen(true);
           }}>{live.host.phase === "ready" ? `共有中 · ${live.host.viewers}台` : live.host.phase === "starting" ? "共有準備中" : "共有を確認"}</button>}
@@ -770,6 +792,11 @@ function App() {
           onLeave={() => { live.leave(); setMenuOpen(false); }} onRetry={live.retry}
         /> : showGuide ? <AppGuide /> : !showHistory ? (
           <nav className="menu-options" aria-label="アプリメニュー">
+            {game && !live.viewer && <section className="game-menu-actions" aria-labelledby="game-actions-title">
+              <h3 id="game-actions-title">現在の試合</h3>
+              <button type="button" onClick={restartGame}>同じメンバーで最初から <span aria-hidden="true">↶</span></button>
+              <button type="button" onClick={startAnotherGame}>試合をクリアして登録へ戻る <span aria-hidden="true">→</span></button>
+            </section>}
             <button type="button" onClick={() => { setShowCareerAnalysis(false); setShowHistory(true); }}>試合履歴 <span>{data.history.length} 試合 →</span></button>
             <button type="button" onClick={() => { setCareerBackTarget("menu"); setShowCareerAnalysis(true); setShowHistory(true); }}>全試合の個人分析 <span>→</span></button>
             <button type="button" onClick={() => setShowLiveSharing(true)}>ライブ共有・観戦 <span>→</span></button>
@@ -1217,7 +1244,6 @@ function App() {
             <div className="scoreboard-card">
               <div className="section-heading score-heading">
                 <div><p className="eyebrow">SCOREBOARD</p><h2>スコア</h2></div>
-                <button className="text-button" onClick={startAnotherGame}>新しいゲーム</button>
               </div>
               <div className="score-list">
                 {scoreUnits.map((unit, index) => {

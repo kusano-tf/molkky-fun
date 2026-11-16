@@ -286,6 +286,9 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .menu-options { display: grid; gap: 10px; }
 .menu-options button { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 14px 16px; border: 1px solid #e5e8df; border-radius: 12px; background: var(--paper); color: var(--green); text-align: left; font-size: 14px; }
 .menu-options button span { flex-shrink: 0; font-size: 12px; }
+.game-actions-toggle { padding: 8px 5px; font-size: 11px; color: var(--green); }
+.game-menu-actions { display: grid; gap: 8px; padding-bottom: 16px; margin-bottom: 6px; border-bottom: 1px solid #dfe7df; }
+.game-menu-actions h3 { margin: 0 0 4px; color: #68756c; font-size: 12px; }
 .menu-toggle { font-size: 22px; }
 .live-sharing-panel, .live-game-view { display: grid; gap: 16px; }
 .live-game-view { margin-top: 16px; }
