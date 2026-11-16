@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { useEffect, useRef, type ReactNode } from "react";
 
 export function OverlayDialog({ open, title, pageKey, onClose, onBack, children }: {
@@ -40,9 +41,9 @@ export function OverlayDialog({ open, title, pageKey, onClose, onBack, children 
     >
       <div className="overlay-panel">
         <header className="overlay-header">
-          {onBack && <button type="button" className="text-button" onClick={onBack}>← 戻る</button>}
+          {onBack && <button type="button" className="text-button" onClick={onBack}>{t("← 戻る")}</button>}
           <h2 id="overlay-title" ref={headingRef} tabIndex={-1}>{title}</h2>
-          <button type="button" className="icon-button" aria-label="閉じて元の画面に戻る" onClick={onClose}>×</button>
+          <button type="button" className="icon-button" aria-label={t("閉じて元の画面に戻る")} onClick={onClose}>×</button>
         </header>
         <div className="overlay-content" ref={contentRef}>{children}</div>
       </div>

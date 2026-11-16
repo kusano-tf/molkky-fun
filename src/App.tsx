@@ -1,3 +1,4 @@
+import { t, useLanguage, setLanguage, getLocale } from "./i18n";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { toBlob } from "html-to-image";
 import { OverlayDialog } from "./OverlayDialog";
@@ -36,8 +37,8 @@ const CAREER_RADAR_AXES = [
 function formatDateTime(value: string): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
-    ? "日時不明"
-    : date.toLocaleString("ja-JP", { dateStyle: "medium", timeStyle: "short" });
+    ? t("日時不明")
+    : date.toLocaleString(getLocale(), { dateStyle: "medium", timeStyle: "short" });
 }
 
 function formatDuration(startedAt: string, completedAt: string): string {
@@ -46,7 +47,7 @@ function formatDuration(startedAt: string, completedAt: string): string {
   if (Number.isNaN(start) || Number.isNaN(end) || end < start) return "—";
   const minutes = Math.floor((end - start) / 60_000);
   const seconds = Math.floor((end - start) / 1_000) % 60;
-  return minutes ? `${minutes}分${seconds}秒` : `${seconds}秒`;
+  return minutes ? t("{0}分{1}秒", [minutes, seconds]) : t("{0}秒", [seconds]);
 }
 
 function CareerRadarChart({ values }: { values: PlayerCareerAnalysis["radarValues"] }) {
@@ -68,7 +69,7 @@ function CareerRadarChart({ values }: { values: PlayerCareerAnalysis["radarValue
     CAREER_RADAR_AXES.map((_, index) => getPoint(index, scale)).join(" ");
 
   return (
-    <svg className="career-radar-chart" viewBox="0 0 300 240" role="img" aria-label="プレイヤーの全試合レーダーチャート">
+    <svg className="career-radar-chart" viewBox="0 0 300 240" role="img" aria-label={t("プレイヤーの全試合レーダーチャート")}>
       {[0.25, 0.5, 0.75, 1].map((scale) => (
         <polygon key={scale} points={gridPoints(scale)} fill="none" stroke="#e4e9e2" strokeWidth={1} />
       ))}
@@ -85,7 +86,7 @@ function CareerRadarChart({ values }: { values: PlayerCareerAnalysis["radarValue
               fill="#718075"
               fontFamily="sans-serif"
               fontSize={10}
-            >{axis.label}</text>
+            >{t(axis.label)}</text>
           </g>
         );
       })}
@@ -120,15 +121,15 @@ function loadData(): { data: AppData; error: string | null } {
 
 function makeDefaultTeams(): Team[] {
   return [
-    { id: "team-1", name: "チーム 1" },
-    { id: "team-2", name: "チーム 2" },
+    { id: "team-1", name: t("チーム 1") },
+    { id: "team-2", name: t("チーム 2") },
   ];
 }
 
 function makeDefaultPlayers(teams: Team[]): Player[] {
   return [
-    { id: crypto.randomUUID(), name: "プレイヤー 1", teamId: teams[0].id },
-    { id: crypto.randomUUID(), name: "プレイヤー 2", teamId: teams[1].id },
+    { id: crypto.randomUUID(), name: t("プレイヤー 1"), teamId: teams[0].id },
+    { id: crypto.randomUUID(), name: t("プレイヤー 2"), teamId: teams[1].id },
   ];
 }
 
@@ -171,13 +172,13 @@ function GameResults({ game, isSharing, onShare, onNewGame }: {
       <div className="analysis-hero">
         <div>
           <p className="eyebrow">MATCH ANALYSIS</p>
-          <h1>{winner ? `${winner.name} の勝ち！` : "試合終了"}</h1>
+          <h1>{winner ? t("{0} の勝ち！", [winner.name]) : t("試合終了")}</h1>
           <p className="analysis-result-copy">
-            {winner ? "ナイスゲーム！おめでとうございます。" : "全員が失格となりました。"}
+            {winner ? t("ナイスゲーム！おめでとうございます。") : t("全員が失格となりました。")}
           </p>
           <div className="analysis-meta">
             <span>{formatDateTime(game.startedAt)}</span>
-            <span>{game.turns.length} 投</span>
+            <span>{t("{0} 投", [game.turns.length])}</span>
             <span>{formatDuration(game.startedAt, analysis.completedAt)}</span>
           </div>
         </div>
@@ -186,7 +187,7 @@ function GameResults({ game, isSharing, onShare, onNewGame }: {
 
       <section className="analysis-section">
         <div className="section-heading">
-          <div><p className="eyebrow">FINAL SCORE</p><h2>最終スコアと成績</h2></div>
+          <div><p className="eyebrow">FINAL SCORE</p><h2>{t("最終スコアと成績")}</h2></div>
         </div>
         <div className="analysis-unit-list">
           {analysis.units.map((unitStats, index) => {
@@ -204,12 +205,12 @@ function GameResults({ game, isSharing, onShare, onNewGame }: {
                   <b>{unitStats.finalScore}<small> / 50</small></b>
                 </div>
                 <div className="analysis-stat-grid">
-                  <div><span>投球数</span><strong>{unitStats.throws}</strong></div>
-                  <div><span>得点した投球</span><strong>{unitStats.scoringThrows}</strong></div>
-                  <div><span>ミス</span><strong>{unitStats.misses}</strong></div>
-                  <div><span>成功率</span><strong>{unitStats.accuracy === null ? "—" : `${unitStats.accuracy.toFixed(0)}%`}</strong></div>
-                  <div><span>平均得点 / 投</span><strong>{unitStats.averagePoints === null ? "—" : unitStats.averagePoints.toFixed(1)}</strong></div>
-                  <div><span>最高得点</span><strong>{unitStats.bestThrow ?? "—"}</strong></div>
+                  <div><span>{t("投球数")}</span><strong>{unitStats.throws}</strong></div>
+                  <div><span>{t("得点した投球")}</span><strong>{unitStats.scoringThrows}</strong></div>
+                  <div><span>{t("ミス")}</span><strong>{unitStats.misses}</strong></div>
+                  <div><span>{t("成功率")}</span><strong>{unitStats.accuracy === null ? "—" : `${unitStats.accuracy.toFixed(0)}%`}</strong></div>
+                  <div><span>{t("平均得点 / 投")}</span><strong>{unitStats.averagePoints === null ? "—" : unitStats.averagePoints.toFixed(1)}</strong></div>
+                  <div><span>{t("最高得点")}</span><strong>{unitStats.bestThrow ?? "—"}</strong></div>
                 </div>
               </article>
             );
@@ -219,18 +220,18 @@ function GameResults({ game, isSharing, onShare, onNewGame }: {
 
       <section className="analysis-section">
         <div className="section-heading">
-          <div><p className="eyebrow">SCORE PROGRESS</p><h2>得点の推移</h2></div>
-          <span className="muted">{game.turns.length} 投</span>
+          <div><p className="eyebrow">SCORE PROGRESS</p><h2>{t("得点の推移")}</h2></div>
+          <span className="muted">{t("{0} 投", [game.turns.length])}</span>
         </div>
-        <svg className="score-chart" viewBox="0 0 360 180" role="img" aria-label="試合中の得点推移">
+        <svg className="score-chart" viewBox="0 0 360 180" role="img" aria-label={t("試合中の得点推移")}>
           <line x1="34" y1="40" x2="342" y2="40" stroke="#e8ebe4" strokeWidth={1} />
           <line x1="34" y1="90" x2="342" y2="90" stroke="#e8ebe4" strokeWidth={1} />
           <line x1="34" y1="140" x2="342" y2="140" stroke="#e8ebe4" strokeWidth={1} />
           <text x="5" y="44" fill="#9aa198" fontFamily="sans-serif" fontSize={9}>50</text>
           <text x="5" y="94" fill="#9aa198" fontFamily="sans-serif" fontSize={9}>25</text>
           <text x="13" y="144" fill="#9aa198" fontFamily="sans-serif" fontSize={9}>0</text>
-          <text x="30" y="165" fill="#9aa198" fontFamily="sans-serif" fontSize={9}>開始</text>
-          <text x="342" y="165" textAnchor="end" fill="#9aa198" fontFamily="sans-serif" fontSize={9}>{game.turns.length} 投</text>
+          <text x="30" y="165" fill="#9aa198" fontFamily="sans-serif" fontSize={9}>{t("開始")}</text>
+          <text x="342" y="165" textAnchor="end" fill="#9aa198" fontFamily="sans-serif" fontSize={9}>{t("{0} 投", [game.turns.length])}</text>
           {analysis.units.map((unitStats, index) => {
             const maxTurn = Math.max(1, analysis.progress.length);
             const chartPoints = [
@@ -279,9 +280,9 @@ function GameResults({ game, isSharing, onShare, onNewGame }: {
         <div className="section-heading">
           <div>
             <p className="eyebrow">SCORE HISTORY</p>
-            <h2>{game.mode === "team" ? "チームごとの得点履歴" : "選手ごとの得点履歴"}</h2>
+            <h2>{game.mode === "team" ? t("チームごとの得点履歴") : t("選手ごとの得点履歴")}</h2>
           </div>
-          <span className="muted">{game.turns.length} 投</span>
+          <span className="muted">{t("{0} 投", [game.turns.length])}</span>
         </div>
         <div className="analysis-history-scroll">
           <div
@@ -311,8 +312,8 @@ function GameResults({ game, isSharing, onShare, onNewGame }: {
                   return (
                     <div className="history-matrix-cell" key={unitStats.unit.id}>
                       <div>
-                        <b>{turn.pins.length ? `+${points}` : "ミス"}</b>
-                        <span>{analysis.progress[turnIndex].scores[unitStats.unit.id]} 点</span>
+                        <b>{turn.pins.length ? `+${points}` : t("ミス")}</b>
+                        <span>{t("{0} 点", [analysis.progress[turnIndex].scores[unitStats.unit.id]])}</span>
                       </div>
                       <small>
                         {game.mode === "team" ? `${player?.name ?? ""} · ` : ""}
@@ -333,11 +334,10 @@ function GameResults({ game, isSharing, onShare, onNewGame }: {
         onClick={() => void onShare(analysisImageRef.current)}
         disabled={isSharing}
       >
-        {isSharing ? "画像を準備中…" : "試合結果をシェア"} <span>↗</span>
+        {isSharing ? t("画像を準備中…") : t("試合結果をシェア")} <span>↗</span>
       </button>
       {onNewGame && <div className="bottom-action-bar">
-        <button className="primary-button analysis-new-game" onClick={onNewGame}>
-          新しいゲームを始める <span>→</span>
+        <button className="primary-button analysis-new-game" onClick={onNewGame}>{t("新しいゲームを始める")}<span>→</span>
         </button>
       </div>}
     </section>
@@ -345,6 +345,7 @@ function GameResults({ game, isSharing, onShare, onNewGame }: {
 }
 
 function App() {
+  const language = useLanguage();
   const initial = useRef(loadData()).current;
   const [data, setData] = useState(initial.data);
   const [storageError, setStorageError] = useState(initial.error);
@@ -486,7 +487,7 @@ function App() {
 
   function startAnotherGame() {
     if (live.viewer) return;
-    if (game && !isFinished && !window.confirm("現在の試合の得点・投球記録を破棄して、プレイヤー登録に戻りますか？ メンバーと投球順は引き継ぎます。")) {
+    if (game && !isFinished && !window.confirm(t("現在の試合の得点・投球記録を破棄して、プレイヤー登録に戻りますか？ メンバーと投球順は引き継ぎます。"))) {
       return;
     }
     if (game) {
@@ -507,7 +508,7 @@ function App() {
 
   function restartGame() {
     if (live.viewer || !game) return;
-    if (!window.confirm("同じメンバー・投球順で最初から始めますか？ 現在の試合の得点・投球記録はリセットされます。終了済みの試合履歴は残ります。")) return;
+    if (!window.confirm(t("同じメンバー・投球順で最初から始めますか？ 現在の試合の得点・投球記録はリセットされます。終了済みの試合履歴は残ります。"))) return;
     setData((current) => ({
       ...current,
       currentGame: createGame(game.players, game.mode ?? "individual", game.teams ?? []),
@@ -543,7 +544,7 @@ function App() {
     contentLabel: string,
   ) {
     if (!target) {
-      setNotice(`${contentLabel}の画像を準備できませんでした。`);
+      setNotice(t("{0}の画像を準備できませんでした。", [contentLabel]));
       return;
     }
 
@@ -551,27 +552,27 @@ function App() {
     setNotice("");
     try {
       const blob = await toBlob(target, { pixelRatio: 2, backgroundColor: "#f7f8f4" });
-      if (!blob) throw new Error("画像データを作成できませんでした。");
+      if (!blob) throw new Error(t("画像データを作成できませんでした。"));
       const file = new File([blob], fileName, { type: "image/png" });
 
       if (typeof navigator.share === "function" && navigator.canShare?.({ files: [file] })) {
         try {
           await navigator.share({ files: [file], title });
-          setNotice(`${contentLabel}を共有しました。`);
+          setNotice(t("{0}を共有しました。", [contentLabel]));
         } catch (error) {
           if (error instanceof Error && error.name === "AbortError") return;
           downloadBlob(blob, fileName);
-          setNotice(`共有できなかったため、${contentLabel}画像を保存しました。Slackなどで添付して共有できます。`);
+          setNotice(t("共有できなかったため、{0}画像を保存しました。Slackなどで添付して共有できます。", [contentLabel]));
         }
       } else {
         downloadBlob(blob, fileName);
-        setNotice(`${contentLabel}画像を保存しました。Slackなどで添付して共有できます。`);
+        setNotice(t("{0}画像を保存しました。Slackなどで添付して共有できます。", [contentLabel]));
       }
     } catch (error) {
       setNotice(
         error instanceof Error
-          ? `${contentLabel}画像を作成できませんでした。${error.message}`
-          : `${contentLabel}画像を作成できませんでした。`,
+          ? t("{0}画像を作成できませんでした。{1}", [contentLabel, error.message])
+          : t("{0}画像を作成できませんでした。", [contentLabel]),
       );
     } finally {
       setIsSharing(false);
@@ -582,8 +583,8 @@ function App() {
     await shareImage(
       target,
       `molkky-fun-result-${new Date().toISOString().slice(0, 10)}.png`,
-      "Molkky Fun 試合結果",
-      "試合結果",
+      t("Molkky Fun 試合結果"),
+      t("試合結果"),
     );
   }
 
@@ -591,8 +592,8 @@ function App() {
     await shareImage(
       careerAnalysisImageRef.current,
       `molkky-fun-career-${new Date().toISOString().slice(0, 10)}.png`,
-      "Molkky Fun 個人成績",
-      "個人成績",
+      t("Molkky Fun 個人成績"),
+      t("個人成績"),
     );
   }
 
@@ -602,16 +603,16 @@ function App() {
     try {
       const parsed: unknown = JSON.parse(await file.text());
       if (!isAppData(parsed)) {
-        throw new Error("このファイルは有効な Molkky Fun のデータではありません。");
+        throw new Error(t("このファイルは有効な Molkky Fun のデータではありません。"));
       }
-      if (!window.confirm("現在のゲームデータを、選択したファイルの内容に置き換えますか？")) return;
+      if (!window.confirm(t("現在のゲームデータを、選択したファイルの内容に置き換えますか？"))) return;
       setData(parsed);
       setSelectedPins([]);
       setSelectedHistoryGameId(null);
       setMenuOpen(false);
       setNotice("ゲームデータを読み込みました。");
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "ファイルを読み込めませんでした。");
+      setNotice(error instanceof Error ? error.message : t("ファイルを読み込めませんでした。"));
     } finally {
       if (fileInput.current) fileInput.current.value = "";
     }
@@ -714,7 +715,7 @@ function App() {
       ...current,
       {
         id: crypto.randomUUID(),
-        name: `プレイヤー ${current.length + 1}`,
+        name: t("プレイヤー {0}", [current.length + 1]),
         teamId: defaultTeam?.id,
       },
     ]);
@@ -741,11 +742,11 @@ function App() {
           <img className="brand-wordmark" src={`${import.meta.env.BASE_URL}icons/wordmark.svg`} alt="Mölkky Fun" />
         </a>
         <div className="toolbar">
-          {game && !live.viewer && <button className="text-button game-actions-toggle" onClick={openGameActions} aria-haspopup="dialog">試合の操作</button>}
+          {game && !live.viewer && <button className="text-button game-actions-toggle" onClick={openGameActions} aria-haspopup="dialog">{t("試合の操作")}</button>}
           {live.host && <button className="text-button live-host-status" onClick={() => {
             setShowLiveSharing(true); setMenuOpen(true);
-          }}>{live.host.phase === "ready" ? `共有中 · ${live.host.viewers}台` : live.host.phase === "starting" ? "共有準備中" : "共有を確認"}</button>}
-          <button className="icon-button menu-toggle" aria-label="メニューを開く" aria-haspopup="dialog" aria-expanded={menuOpen} onClick={() => {
+          }}>{live.host.phase === "ready" ? t("共有中 · {0}台", [live.host.viewers]) : live.host.phase === "starting" ? t("共有準備中") : t("共有を確認")}</button>}
+          <button className="icon-button menu-toggle" aria-label={t("メニューを開く")} aria-haspopup="dialog" aria-expanded={menuOpen} onClick={() => {
             setShowLiveSharing(false);
             setShowGuide(false); setShowIntroduction(false);
             setShowHistory(false);
@@ -759,14 +760,14 @@ function App() {
 
       {(storageError || notice) && (
         <div className={`notice ${storageError ? "notice-error" : ""}`} role="status">
-          {storageError || notice}
-          {storageError && <button className="notice-dismiss" onClick={() => setStorageError(null)} aria-label="閉じる">×</button>}
+          {t(storageError || notice)}
+          {storageError && <button className="notice-dismiss" onClick={() => setStorageError(null)} aria-label={t("閉じる")}>×</button>}
         </div>
       )}
 
       <OverlayDialog
         open={menuOpen}
-        title={showLiveSharing ? "ライブ共有・観戦" : showIntroduction ? "モルック入門" : showGuide ? "使い方・分析指標" : selectedHistoryGame ? "試合結果" : showHistory ? (showCareerAnalysis ? "個人分析" : "試合履歴") : "メニュー"}
+        title={showLiveSharing ? t("ライブ共有・観戦") : showIntroduction ? t("モルック入門") : showGuide ? t("使い方・分析指標") : selectedHistoryGame ? t("試合結果") : showHistory ? (showCareerAnalysis ? t("個人分析") : t("試合履歴")) : t("メニュー")}
         pageKey={showLiveSharing ? "live" : showIntroduction ? "introduction" : showGuide ? "guide" : selectedHistoryGame?.id ?? (showHistory ? (showCareerAnalysis ? "career" : "history") : "menu")}
         onClose={() => setMenuOpen(false)}
         onBack={showLiveSharing ? () => { setShowLiveSharing(false); setShowGuide(false); setShowIntroduction(false); setShowHistory(false); }
@@ -793,19 +794,26 @@ function App() {
           onJoin={(invitation) => { void live.join(invitation); setMenuOpen(false); }}
           onLeave={() => { live.leave(); setMenuOpen(false); }} onRetry={live.retry}
         /> : showIntroduction ? <MolkkyIntroduction /> : showGuide ? <AppGuide /> : !showHistory ? (
-          <nav className="menu-options" aria-label="アプリメニュー">
+          <nav className="menu-options" aria-label={t("アプリメニュー")}>
+            <label className="language-setting">
+              <span>{t("言語 / Language")}</span>
+              <select value={language} onChange={(event) => setLanguage(event.target.value === "en" ? "en" : "ja")}>
+                <option value="ja">日本語</option>
+                <option value="en">English</option>
+              </select>
+            </label>
             {game && !live.viewer && <section className="game-menu-actions" aria-labelledby="game-actions-title">
-              <h3 id="game-actions-title">現在の試合</h3>
-              <button type="button" onClick={restartGame}>同じメンバーで最初から <span aria-hidden="true">↶</span></button>
-              <button type="button" onClick={startAnotherGame}>試合をクリアして登録へ戻る <span aria-hidden="true">→</span></button>
+              <h3 id="game-actions-title">{t("現在の試合")}</h3>
+              <button type="button" onClick={restartGame}>{t("同じメンバーで最初から")}<span aria-hidden="true">↶</span></button>
+              <button type="button" onClick={startAnotherGame}>{t("試合をクリアして登録へ戻る")}<span aria-hidden="true">→</span></button>
             </section>}
-            <button type="button" onClick={() => { setShowCareerAnalysis(false); setShowHistory(true); }}>試合履歴 <span>{data.history.length} 試合 →</span></button>
-            <button type="button" onClick={() => { setCareerBackTarget("menu"); setShowCareerAnalysis(true); setShowHistory(true); }}>全試合の個人分析 <span>→</span></button>
-            <button type="button" onClick={() => setShowLiveSharing(true)}>ライブ共有・観戦 <span>→</span></button>
-            <button type="button" onClick={exportData}>データを書き出す <span>↓</span></button>
-            <button type="button" disabled={!!live.viewer} onClick={() => fileInput.current?.click()}>データを読み込む <span>↑</span></button>
-            <button type="button" onClick={() => setShowIntroduction(true)}>モルック入門 <span>→</span></button>
-            <button type="button" onClick={() => setShowGuide(true)}>使い方・分析指標 <span>→</span></button>
+            <button type="button" onClick={() => { setShowCareerAnalysis(false); setShowHistory(true); }}>{t("試合履歴")}<span>{t("{0} 試合 →", [data.history.length])}</span></button>
+            <button type="button" onClick={() => { setCareerBackTarget("menu"); setShowCareerAnalysis(true); setShowHistory(true); }}>{t("全試合の個人分析")}<span>→</span></button>
+            <button type="button" onClick={() => setShowLiveSharing(true)}>{t("ライブ共有・観戦")}<span>→</span></button>
+            <button type="button" onClick={exportData}>{t("データを書き出す")}<span>↓</span></button>
+            <button type="button" disabled={!!live.viewer} onClick={() => fileInput.current?.click()}>{t("データを読み込む")}<span>↑</span></button>
+            <button type="button" onClick={() => setShowIntroduction(true)}>{t("モルック入門")}<span>→</span></button>
+            <button type="button" onClick={() => setShowGuide(true)}>{t("使い方・分析指標")}<span>→</span></button>
           </nav>
         ) : selectedHistoryGame ? (
           <GameResults game={selectedHistoryGame} isSharing={isSharing} onShare={shareAnalysis} />
@@ -813,18 +821,18 @@ function App() {
         <section className="history-panel">
           {!showCareerAnalysis && <>
           <div className="section-heading">
-            <div><p className="eyebrow">PAST GAMES</p><h2>試合履歴</h2></div>
+            <div><p className="eyebrow">PAST GAMES</p><h2>{t("試合履歴")}</h2></div>
             <div className="history-panel-actions">
-              <span className="muted">{data.history.length} 試合</span>
+              <span className="muted">{t("{0} 試合", [data.history.length])}</span>
               <button
                 className="text-button"
                 type="button"
                 onClick={() => { setCareerBackTarget("history"); setShowCareerAnalysis(true); }}
-              >全試合の個人分析</button>
+              >{t("全試合の個人分析")}</button>
             </div>
           </div>
           {data.history.length === 0 ? (
-            <p className="empty-copy">試合が終わると、ここに記録されます。</p>
+            <p className="empty-copy">{t("試合が終わると、ここに記録されます。")}</p>
           ) : (
             <ul className="history-list">
               {data.history.map((pastGame) => {
@@ -839,7 +847,7 @@ function App() {
                         ? (pastGame.teams ?? []).map((team) => team.name).join(" ・ ")
                         : pastGame.players.map((player) => player.name).join(" ・ ")}
                     </span>
-                    <strong>{pastWinner ? `${pastWinner.name} の勝ち` : "終了"} <span aria-hidden="true">→</span></strong>
+                    <strong>{pastWinner ? t("{0} の勝ち", [pastWinner.name]) : t("終了")} <span aria-hidden="true">→</span></strong>
                     </button>
                   </li>
                 );
@@ -850,13 +858,13 @@ function App() {
           {showCareerAnalysis && (
             <section className="career-analysis" id="career-analysis">
               <div className="section-heading">
-                <div><p className="eyebrow">PLAYER CAREER</p><h3>全試合の個人成績</h3></div>
-                <span className="muted">{playerCareerStats.length} 人</span>
+                <div><p className="eyebrow">PLAYER CAREER</p><h3>{t("全試合の個人成績")}</h3></div>
+                <span className="muted">{t("{0} 人", [playerCareerStats.length])}</span>
               </div>
               {selectedCareerPlayer ? (
                 <>
                   <label className="career-player-picker">
-                    <span>プレイヤー</span>
+                    <span>{t("プレイヤー")}</span>
                     <select
                       value={selectedCareerPlayer.playerId}
                       onChange={(event) => setSelectedCareerPlayerId(event.target.value)}
@@ -869,12 +877,12 @@ function App() {
                   <div className="career-share-content" ref={careerAnalysisImageRef}>
                     <div className="career-share-heading">
                       <p className="eyebrow">MOLKKY FUN · PLAYER CAREER</p>
-                      <h3>{selectedCareerPlayer.name} の全試合成績</h3>
+                      <h3>{t("{0} の全試合成績", [selectedCareerPlayer.name])}</h3>
                     </div>
                     <div className="career-stat-grid">
-                      <div><span>参加試合</span><strong>{selectedCareerPlayer.gamesPlayed}</strong></div>
+                      <div><span>{t("参加試合")}</span><strong>{selectedCareerPlayer.gamesPlayed}</strong></div>
                       <div>
-                        <span>勝利 / 勝率</span>
+                        <span>{t("勝利 / 勝率")}</span>
                         <strong>
                           {selectedCareerPlayer.gamesWon} / {selectedCareerPlayer.gamesPlayed}
                           {" ・ "}
@@ -883,34 +891,34 @@ function App() {
                             : "—"}
                         </strong>
                       </div>
-                      <div><span>投球数</span><strong>{selectedCareerPlayer.throws}</strong></div>
-                      <div><span>合計得点</span><strong>{selectedCareerPlayer.totalPoints}</strong></div>
+                      <div><span>{t("投球数")}</span><strong>{selectedCareerPlayer.throws}</strong></div>
+                      <div><span>{t("合計得点")}</span><strong>{selectedCareerPlayer.totalPoints}</strong></div>
                       <div>
-                        <span>成功率</span>
+                        <span>{t("成功率")}</span>
                         <strong>{selectedCareerPlayer.accuracy === null ? "—" : `${selectedCareerPlayer.accuracy.toFixed(0)}%`}</strong>
                       </div>
                       <div>
-                        <span>平均得点 / 投</span>
+                        <span>{t("平均得点 / 投")}</span>
                         <strong>{selectedCareerPlayer.averagePoints === null ? "—" : selectedCareerPlayer.averagePoints.toFixed(1)}</strong>
                       </div>
                       <div>
-                        <span>10点以上率</span>
+                        <span>{t("10点以上率")}</span>
                         <strong>
                           {selectedCareerPlayer.tenPlusRate === null ? "—" : `${selectedCareerPlayer.tenPlusRate.toFixed(0)}%`}
                         </strong>
-                        <small>{selectedCareerPlayer.tenPlusThrows} 回 / {selectedCareerPlayer.tenPlusOpportunities} 機会</small>
+                        <small>{t("{0} 回 / {1} 機会", [selectedCareerPlayer.tenPlusThrows, selectedCareerPlayer.tenPlusOpportunities])}</small>
                       </div>
-                      <div><span>最高得点</span><strong>{selectedCareerPlayer.bestThrow ?? "—"}</strong></div>
+                      <div><span>{t("最高得点")}</span><strong>{selectedCareerPlayer.bestThrow ?? "—"}</strong></div>
                       <div>
-                        <span>あがり成功率</span>
+                        <span>{t("あがり成功率")}</span>
                         <strong>{selectedCareerPlayer.finishRate === null ? "—" : `${selectedCareerPlayer.finishRate.toFixed(0)}%`}</strong>
-                        <small>{selectedCareerPlayer.exactFinishes} 成功 / {selectedCareerPlayer.finishAttempts} 機会</small>
+                        <small>{t("{0} 成功 / {1} 機会", [selectedCareerPlayer.exactFinishes, selectedCareerPlayer.finishAttempts])}</small>
                       </div>
                     </div>
                     <div className="career-radar-card">
                       <div className="section-heading">
-                        <div><p className="eyebrow">CAREER RADAR</p><h3>得意度バランス</h3></div>
-                        <span className="muted">{selectedCareerPlayer.throws} 投</span>
+                        <div><p className="eyebrow">CAREER RADAR</p><h3>{t("得意度バランス")}</h3></div>
+                        <span className="muted">{t("{0} 投", [selectedCareerPlayer.throws])}</span>
                       </div>
                       <CareerRadarChart values={selectedCareerPlayer.radarValues} />
                     </div>
@@ -921,17 +929,17 @@ function App() {
                     onClick={() => void shareCareerAnalysis()}
                     disabled={isSharing}
                   >
-                    {isSharing ? "画像を準備中…" : "個人分析をシェア"} <span>↗</span>
+                    {isSharing ? t("画像を準備中…") : t("個人分析をシェア")} <span>↗</span>
                   </button>
                 </>
               ) : (
-                <p className="empty-copy">終了した試合の記録がありません。</p>
+                <p className="empty-copy">{t("終了した試合の記録がありません。")}</p>
               )}
             </section>
           )}
         </section>
         )}
-        {(storageError || notice) && <p className="notice" role="status">{storageError || notice}</p>}
+        {(storageError || notice) && <p className="notice" role="status">{t(storageError || notice)}</p>}
       </OverlayDialog>
 
       {live.viewer ? <LiveGameView game={live.remoteGame} state={live.viewer} onRetry={live.retry} onLeave={live.leave}>
@@ -940,51 +948,44 @@ function App() {
         <section className="setup-layout">
           <div className="intro-card">
             <p className="eyebrow">MOLKKY SCOREKEEPER</p>
-            <h1>今日の一投を、<br />気持ちよく記録。</h1>
-            <p className="intro-copy">得点計算はおまかせ。みんなでゲームに集中しよう。</p>
+            <h1>{t("今日の一投を、")}<br />{t("気持ちよく記録。")}</h1>
+            <p className="intro-copy">{t("得点計算はおまかせ。みんなでゲームに集中しよう。")}</p>
             <div className="pin-illustration" aria-hidden="true">
               <span className="pin pin-one">1</span><span className="pin pin-two">7</span><span className="pin pin-three">12</span>
             </div>
           </div>
           <form className="setup-card" onSubmit={startGame}>
             <div className="section-heading">
-              <div><p className="eyebrow">NEW GAME</p><h2>プレイヤーを登録</h2></div>
-              <span className="muted">
-                {players.length} 人
-                {mode === "team"
-                  ? `・${teams.filter((team) => players.some((player) => player.teamId === team.id)).length} チーム`
-                  : ""}
-              </span>
+              <div><p className="eyebrow">NEW GAME</p><h2>{t("プレイヤーを登録")}</h2></div>
+              <span className="muted">{t("{0} 人 {1}", [players.length, mode === "team"
+                  ? t("・{0} チーム", [teams.filter((team) => players.some((player) => player.teamId === team.id)).length])
+                  : ""])}</span>
             </div>
-            <div className="mode-switch" aria-label="試合形式">
+            <div className="mode-switch" aria-label={t("試合形式")}>
               <button
                 type="button"
                 className={mode === "individual" ? "mode-selected" : ""}
                 aria-pressed={mode === "individual"}
                 onClick={() => setMode("individual")}
-              >
-                個人戦
-              </button>
+              >{t("個人戦")}</button>
               <button
                 type="button"
                 className={mode === "team" ? "mode-selected" : ""}
                 aria-pressed={mode === "team"}
                 onClick={() => setMode("team")}
-              >
-                チーム戦
-              </button>
+              >{t("チーム戦")}</button>
             </div>
             {mode === "team" && (
               <div className="team-setup">
                 <div className="list-subheading">
-                  <strong>チームの先攻順</strong>
-                  <span>チーム順に投球します</span>
+                  <strong>{t("チームの先攻順")}</strong>
+                  <span>{t("チーム順に投球します")}</span>
                   <button
                     className="randomize-button"
                     type="button"
                     onClick={randomizeTeamOrder}
-                    aria-label="チームの投球順をランダムにする"
-                  >🎲 ランダム</button>
+                    aria-label={t("チームの投球順をランダムにする")}
+                  >{t("🎲 ランダム")}</button>
                 </div>
                 <div className="team-fields">
                   {teams.map((team, index) => {
@@ -995,7 +996,7 @@ function App() {
                         <input
                           value={team.name}
                           maxLength={24}
-                          aria-label={`チーム ${index + 1} の名前`}
+                          aria-label={t("チーム {0} の名前", [index + 1])}
                           onChange={(event) =>
                             setTeams((current) =>
                               current.map((item) =>
@@ -1009,13 +1010,13 @@ function App() {
                             type="button"
                             onClick={() => moveTeam(team.id, -1)}
                             disabled={index === 0}
-                            aria-label={`${team.name}を先にする`}
+                            aria-label={t("{0}を先にする", [team.name])}
                           >↑</button>
                           <button
                             type="button"
                             onClick={() => moveTeam(team.id, 1)}
                             disabled={index === teams.length - 1}
-                            aria-label={`${team.name}を後にする`}
+                            aria-label={t("{0}を後にする", [team.name])}
                           >↓</button>
                         </div>
                         {teams.length > 2 && (
@@ -1024,8 +1025,8 @@ function App() {
                             type="button"
                             disabled={hasPlayers}
                             onClick={() => setTeams((current) => current.filter((item) => item.id !== team.id))}
-                            aria-label={`${team.name}を削除`}
-                            title={hasPlayers ? "先に選手を別チームへ移動してください" : undefined}
+                            aria-label={t("{0}を削除", [team.name])}
+                            title={hasPlayers ? t("先に選手を別チームへ移動してください") : undefined}
                           >×</button>
                         )}
                       </div>
@@ -1038,29 +1039,28 @@ function App() {
                   onClick={() =>
                     setTeams((current) => [
                       ...current,
-                      { id: crypto.randomUUID(), name: `チーム ${current.length + 1}` },
+                      { id: crypto.randomUUID(), name: t("チーム {0}", [current.length + 1]) },
                     ])
                   }
                 >
-                  <span>＋</span> チームを追加
-                </button>
+                  <span>＋</span>{t("チームを追加")}</button>
                 <button
                   className="random-assignment-button"
                   type="button"
                   onClick={randomizeTeamAssignments}
-                  aria-label="選手をチーム人数が均等になるようランダムに振り分ける"
-                >🎲 選手を均等にランダム振り分け</button>
+                  aria-label={t("選手をチーム人数が均等になるようランダムに振り分ける")}
+                >{t("🎲 選手を均等にランダム振り分け")}</button>
               </div>
             )}
             <div className="list-subheading player-list-heading">
-              <strong>選手の投球順</strong>
-              <span>{mode === "team" ? "チーム内の順番" : "先頭の選手が先攻"} ・ 上から順</span>
+              <strong>{t("選手の投球順")}</strong>
+              <span>{t("{0} ・ 上から順", [mode === "team" ? t("チーム内の順番") : t("先頭の選手が先攻")])}</span>
               <button
                 className="randomize-button"
                 type="button"
                 onClick={randomizePlayerOrder}
-                aria-label={mode === "team" ? "チーム内の投球順をランダムにする" : "選手の投球順をランダムにする"}
-              >🎲 ランダム</button>
+                aria-label={mode === "team" ? t("チーム内の投球順をランダムにする") : t("選手の投球順をランダムにする")}
+              >{t("🎲 ランダム")}</button>
             </div>
             <div className="player-fields">
               {players.map((player, index) => {
@@ -1074,7 +1074,7 @@ function App() {
                   <input
                     value={player.name}
                     maxLength={24}
-                    aria-label={`プレイヤー ${index + 1} の名前`}
+                    aria-label={t("プレイヤー {0} の名前", [index + 1])}
                     onChange={(event) =>
                       setPlayers((current) =>
                         current.map((item) =>
@@ -1082,12 +1082,12 @@ function App() {
                         ),
                       )
                     }
-                    placeholder={`プレイヤー ${index + 1}`}
+                    placeholder={t("プレイヤー {0}", [index + 1])}
                   />
                   {mode === "team" && (
                     <select
                       value={player.teamId ?? ""}
-                      aria-label={`${player.name}のチーム`}
+                      aria-label={t("{0}のチーム", [player.name])}
                       onChange={(event) =>
                         setPlayers((current) =>
                           current.map((item) =>
@@ -1104,7 +1104,7 @@ function App() {
                       type="button"
                       onClick={() => movePlayer(player.id, -1)}
                       disabled={teamPosition === 0 || (mode === "individual" && index === 0)}
-                      aria-label={`${player.name}を先にする`}
+                      aria-label={t("{0}を先にする", [player.name])}
                     >↑</button>
                     <button
                       type="button"
@@ -1114,30 +1114,29 @@ function App() {
                           ? teamPosition === teamPlayers.length - 1
                           : index === players.length - 1
                       }
-                      aria-label={`${player.name}を後にする`}
+                      aria-label={t("{0}を後にする", [player.name])}
                     >↓</button>
                   </div>
                   <button
                     className="remove-player"
                     type="button"
                     onClick={() => setPlayers((current) => current.filter((item) => item.id !== player.id))}
-                    aria-label={`${player.name || `プレイヤー ${index + 1}`}を削除`}
+                    aria-label={t("{0}を削除", [player.name || t("プレイヤー {0}", [index + 1])])}
                   >×</button>
                 </div>
                 );
               })}
             </div>
             <button className="add-player" type="button" onClick={addPlayer}>
-              <span>＋</span> プレイヤーを追加
-            </button>
+              <span>＋</span>{t("プレイヤーを追加")}</button>
             {data.history.length > 0 && (
               <details className="history-player-picker">
-                <summary>試合履歴から追加</summary>
-                <p className="helper-text">参加者を選んで追加</p>
+                <summary>{t("試合履歴から追加")}</summary>
+                <p className="helper-text">{t("参加者を選んで追加")}</p>
                 <div className="history-player-matches">
                   {data.history.map((pastGame) => (
                     <div className="history-player-match" key={pastGame.id}>
-                      <p>{formatDateTime(pastGame.startedAt)} · {pastGame.mode === "team" ? "チーム戦" : "個人戦"}</p>
+                      <p>{formatDateTime(pastGame.startedAt)} · {pastGame.mode === "team" ? t("チーム戦") : t("個人戦")}</p>
                       <div className="history-player-options">
                         {pastGame.players.map((player) => {
                           const added = players.some((item) => item.id === player.id);
@@ -1147,8 +1146,8 @@ function App() {
                               key={player.id}
                               disabled={added}
                               onClick={() => addHistoryPlayer(player)}
-                              aria-label={`${player.name}${added ? "は追加済み" : "を参加者に追加"}`}
-                            >{added ? "✓ " : "＋ "}{player.name}{added ? "（追加済み）" : ""}</button>
+                              aria-label={t("{0}{1}", [player.name, added ? t("は追加済み") : t("を参加者に追加")])}
+                            >{added ? "✓ " : "＋ "}{player.name}{added ? t("（追加済み）") : ""}</button>
                           );
                         })}
                       </div>
@@ -1158,7 +1157,7 @@ function App() {
               </details>
             )}
             <div className="bottom-action-bar">
-              <button className="primary-button start-button" type="submit">ゲームを始める <span>→</span></button>
+              <button className="primary-button start-button" type="submit">{t("ゲームを始める")}<span>→</span></button>
             </div>
           </form>
         </section>
@@ -1172,16 +1171,16 @@ function App() {
                 <span className="winner-icon" aria-hidden="true">✦</span>
                 <div>
                   <p className="eyebrow">GAME COMPLETE</p>
-                  <h1>{winner ? `${winner.name} の勝ち！` : "ゲーム終了"}</h1>
-                  <p>{winner ? "ナイスゲーム！おめでとうございます。" : "全員が失格となりました。"}</p>
+                  <h1>{winner ? t("{0} の勝ち！", [winner.name]) : t("ゲーム終了")}</h1>
+                  <p>{winner ? t("ナイスゲーム！おめでとうございます。") : t("全員が失格となりました。")}</p>
                 </div>
-                <button className="primary-button" onClick={startAnotherGame}>新しいゲーム <span>→</span></button>
+                <button className="primary-button" onClick={startAnotherGame}>{t("新しいゲーム")}<span>→</span></button>
               </div>
             ) : (
               <div className={`turn-banner ${isReach ? "turn-reach" : isLastChance ? "turn-danger" : ""}`}>
                 <div className="turn-banner-heading">
-                <div><p className="eyebrow">NOW THROWING</p><h1>{currentPlayer?.name ?? "プレイヤー"}</h1></div>
-                <div className="turn-tag"><span className="live-dot" />投球順 {game!.turns.length + 1}</div>
+                <div><p className="eyebrow">NOW THROWING</p><h1>{currentPlayer?.name ?? t("プレイヤー")}</h1></div>
+                <div className="turn-tag"><span className="live-dot" />{t("投球順 {0}", [game!.turns.length + 1])}</div>
                 </div>
 
             <div className="turn-situation" role="status" aria-live="polite" aria-atomic="true">
@@ -1190,13 +1189,13 @@ function App() {
                   {isReach && (
                     <div className="turn-alert reach-alert">
                       <span className="turn-alert-icon" aria-hidden="true">✦</span>
-                      <div><strong>リーチ！ あと {remainingPoints} 点で勝利</strong><p>50点ぴったりを狙おう。</p></div>
+                      <div><strong>{t("リーチ！ あと {0} 点で勝利", [remainingPoints])}</strong><p>{t("50点ぴったりを狙おう。")}</p></div>
                     </div>
                   )}
                   {isLastChance && (
                     <div className="turn-alert danger-alert">
                       <span className="turn-alert-icon" aria-hidden="true">!</span>
-                      <div><strong>次のミスで失格</strong><p>{game!.mode === "team" ? "チームで2回連続ミス。ここが踏ん張りどころ！" : "2回連続ミス。ここが踏ん張りどころ！"}</p></div>
+                      <div><strong>{t("次のミスで失格")}</strong><p>{game!.mode === "team" ? t("チームで2回連続ミス。ここが踏ん張りどころ！") : t("2回連続ミス。ここが踏ん張りどころ！")}</p></div>
                     </div>
                   )}
                 </div>
@@ -1207,9 +1206,9 @@ function App() {
 
             <aside className="throw-card">
               <div className="section-heading">
-                <div><p className="eyebrow">YOUR THROW</p><h2>倒れたピンを選ぶ</h2></div>
+                <div><p className="eyebrow">YOUR THROW</p><h2>{t("倒れたピンを選ぶ")}</h2></div>
               </div>
-              <p className="helper-text">倒れたピンをすべて選択してください。</p>
+              <p className="helper-text">{t("倒れたピンをすべて選択してください。")}</p>
               <div className="pin-grid">
                 {Array.from({ length: 12 }, (_, index) => index + 1).map((pin) => (
                   <button
@@ -1218,35 +1217,35 @@ function App() {
                     onClick={() => togglePin(pin)}
                     disabled={isFinished}
                     aria-pressed={selectedPins.includes(pin)}
-                    aria-label={`ピン ${pin}${selectedPins.includes(pin) ? " 選択中" : ""}`}
+                    aria-label={t("ピン {0}{1}", [pin, selectedPins.includes(pin) ? t(" 選択中") : ""])}
                   >
                     {pin}
                   </button>
                 ))}
               </div>
               <div className="score-preview">
-                <span>今回の得点</span>
-                <strong>{selectedPins.length ? scoreThrow(selectedPins) : "—"}<small> 点</small></strong>
-                <small>{selectedPins.length === 1 ? "ピンの数字が得点" : selectedPins.length > 1 ? "倒れた本数が得点" : "ピンを選択してください"}</small>
+                <span>{t("今回の得点")}</span>
+                <strong>{selectedPins.length ? scoreThrow(selectedPins) : "—"}<small>{t("点")}</small></strong>
+                <small>{selectedPins.length === 1 ? t("ピンの数字が得点") : selectedPins.length > 1 ? t("倒れた本数が得点") : t("ピンを選択してください")}</small>
               </div>
               <div className="throw-actions bottom-action-bar">
                 {(isReach || isLastChance) && <p className="action-situation">
-                  {isReach && <span className="reach-label">✦ あと {remainingPoints} 点で勝利</span>}
-                  {isLastChance && <span className="danger-label">次のミスで失格</span>}
+                  {isReach && <span className="reach-label">{t("✦ あと {0} 点で勝利", [remainingPoints])}</span>}
+                  {isLastChance && <span className="danger-label">{t("次のミスで失格")}</span>}
                 </p>}
                 <button className="primary-button record-button" disabled={!selectedPins.length || isFinished} onClick={() => submitThrow(selectedPins)}>
-                  {selectedPins.length ? `${scoreThrow(selectedPins)}点を記録する` : "得点を記録する"} <span>→</span>
+                  {selectedPins.length ? t("{0}点を記録する", [scoreThrow(selectedPins)]) : t("得点を記録する")} <span>→</span>
                 </button>
-                <button className={`miss-button ${isLastChance ? "miss-button-danger" : ""}`} disabled={isFinished} onClick={() => submitThrow([])}>今回はミス</button>
+                <button className={`miss-button ${isLastChance ? "miss-button-danger" : ""}`} disabled={isFinished} onClick={() => submitThrow([])}>{t("今回はミス")}</button>
               </div>
               <div className="throw-footer">
-                <button className="text-button" disabled={!game!.turns.length} onClick={undoThrow}>↶ 1投戻す</button>
+                <button className="text-button" disabled={!game!.turns.length} onClick={undoThrow}>{t("↶ 1投戻す")}</button>
               </div>
             </aside>
 
             <div className="scoreboard-card">
               <div className="section-heading score-heading">
-                <div><p className="eyebrow">SCOREBOARD</p><h2>スコア</h2></div>
+                <div><p className="eyebrow">SCOREBOARD</p><h2>{t("スコア")}</h2></div>
               </div>
               <div className="score-list">
                 {scoreUnits.map((unit, index) => {
@@ -1263,21 +1262,21 @@ function App() {
                         <strong>{unit.name}</strong>
                         {!unitScore.eliminated && !isFinished && (
                           <div className="score-state-tags">
-                            {unitRemaining >= 1 && unitRemaining <= 12 && <span className="reach-label">リーチ · あと{unitRemaining}点</span>}
-                            {unitScore.consecutiveMisses === 2 && <span className="danger-label">次のミスで失格</span>}
+                            {unitRemaining >= 1 && unitRemaining <= 12 && <span className="reach-label">{t("リーチ · あと{0}点", [unitRemaining])}</span>}
+                            {unitScore.consecutiveMisses === 2 && <span className="danger-label">{t("次のミスで失格")}</span>}
                           </div>
                         )}
                         <small>
                           {unitScore.eliminated
-                            ? "失格"
+                            ? t("失格")
                             : unitScore.consecutiveMisses > 0
-                              ? `ミス ${unitScore.consecutiveMisses}/3`
+                              ? t("ミス {0}/3", [unitScore.consecutiveMisses])
                               : currentTeamPlayer && !isFinished
-                                ? `${currentTeamPlayer} が投球中`
-                                : "プレイ中"}
+                                ? t("{0} が投球中", [currentTeamPlayer])
+                                : t("プレイ中")}
                         </small>
                       </div>
-                      <div className="score-progress" aria-label={`${unitScore.score}点`}>
+                      <div className="score-progress" aria-label={t("{0}点", [unitScore.score])}>
                         <div className="progress-track"><div style={{ width: `${(unitScore.score / 50) * 100}%` }} /></div>
                         <span>{unitScore.score}<small> / 50</small></span>
                       </div>
@@ -1289,11 +1288,11 @@ function App() {
 
             <div className="recent-card">
               <div className="section-heading">
-                <div><p className="eyebrow">LAST THROWS</p><h2>投球履歴</h2></div>
-                {game!.turns.length > 0 && <span className="muted">{game!.turns.length} 投</span>}
+                <div><p className="eyebrow">LAST THROWS</p><h2>{t("投球履歴")}</h2></div>
+                {game!.turns.length > 0 && <span className="muted">{t("{0} 投", [game!.turns.length])}</span>}
               </div>
               {game!.turns.length === 0 ? (
-                <p className="empty-copy">最初の投球を記録しましょう。</p>
+                <p className="empty-copy">{t("最初の投球を記録しましょう。")}</p>
               ) : (
                 <ol className="throw-list">
                   {[...game!.turns].reverse().slice(0, 5).map((turn, index) => {
@@ -1302,7 +1301,7 @@ function App() {
                       <li key={`${turn.playedAt}-${index}`}>
                         <span className="throw-index">{game!.turns.length - index}</span>
                         <strong>{player?.name}</strong>
-                        <span>{turn.pins.length ? `${turn.pins.length === 1 ? `ピン ${turn.pins[0]}` : `${turn.pins.length} 本`}を倒した` : "ミス"}</span>
+                        <span>{turn.pins.length ? t("{0}を倒した", [turn.pins.length === 1 ? t("ピン {0}", [turn.pins[0]]) : t("{0} 本", [turn.pins.length])]) : t("ミス")}</span>
                         <b>{turn.pins.length ? `+${scoreThrow(turn.pins)}` : "—"}</b>
                       </li>
                     );

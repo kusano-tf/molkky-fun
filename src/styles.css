@@ -338,3 +338,10 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .intro-pin-row { display: flex; justify-content: center; gap: 5px; }
 .intro-pin-row + .intro-pin-row { margin-top: 5px; }
 .intro-pin-row span { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid #c9af85; border-radius: 50%; background: #f8e5c4; color: #493b2a; font-size: 13px; font-weight: 700; }
+
+.language-setting { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); color: var(--green); font-size: 14px; font-weight: 600; }
+.language-setting select { max-width: 55%; padding: 8px 12px; border: 1px solid #d9dfd5; border-radius: 8px; background: var(--paper); color: inherit; font: inherit; }
+:lang(en) .section-heading { flex-wrap: wrap; gap: 8px; }
+:lang(en) .section-heading > div { min-width: 0; }
+:lang(en) .career-radar-chart text { font-size: 8px; }
+:lang(en) .analysis-stat-grid span { overflow-wrap: anywhere; }
