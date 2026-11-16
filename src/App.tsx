@@ -142,6 +142,14 @@ function shuffle<T>(items: T[]): T[] {
   return shuffled;
 }
 
+function fileTimestamp(): string {
+  const now = new Date();
+  const pad = (value: number) => String(value).padStart(2, "0");
+  const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const time = `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+  return `${date}_${time}`;
+}
+
 function downloadBlob(blob: Blob, fileName: string) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -531,7 +539,7 @@ function App() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `molkky-fun-${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = `molkky-fun-${fileTimestamp()}.json`;
     link.click();
     URL.revokeObjectURL(url);
     setNotice("ゲームデータを書き出しました。");
@@ -582,7 +590,7 @@ function App() {
   async function shareAnalysis(target: HTMLDivElement | null) {
     await shareImage(
       target,
-      `molkky-fun-result-${new Date().toISOString().slice(0, 10)}.png`,
+      `molkky-fun-result-${fileTimestamp()}.png`,
       t("Molkky Fun 試合結果"),
       t("試合結果"),
     );
@@ -591,7 +599,7 @@ function App() {
   async function shareCareerAnalysis() {
     await shareImage(
       careerAnalysisImageRef.current,
-      `molkky-fun-career-${new Date().toISOString().slice(0, 10)}.png`,
+      `molkky-fun-career-${fileTimestamp()}.png`,
       t("Molkky Fun 個人成績"),
       t("個人成績"),
     );
