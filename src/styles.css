@@ -321,4 +321,20 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .app-guide dl > dt:first-child { margin-top: 0; }
 .app-guide p + dl { margin-top: 16px; }
 .app-guide dd { margin: 4px 0 0; }
+.molkky-introduction .glossary-intro { margin: 0; }
+.glossary-tools > div + div { margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e8df; }
+.glossary-tools dt { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 17px; }
+.glossary-role { padding: 3px 9px; border-radius: 999px; background: #edf2e9; color: var(--green); font-size: 11px; }
+.molkky-introduction .glossary-source { margin: 0; font-size: 12px; }
+.glossary-source a { color: var(--green); text-underline-offset: 3px; }
 .history-names { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.intro-steps { margin: 0; padding-left: 22px; }
+.intro-steps li::marker { color: var(--green); font-weight: 700; }
+.intro-steps li + li { margin-top: 16px; }
+.intro-steps li p { margin-top: 4px; }
+.intro-pin-layout { margin: 20px 0 0; padding: 16px 8px; border-radius: 12px; background: #edf2e9; text-align: center; }
+.intro-pin-layout figcaption { margin-bottom: 14px; color: var(--green); font-size: 12px; line-height: 1.6; }
+.intro-pin-row { display: flex; justify-content: center; gap: 5px; }
+.intro-pin-row + .intro-pin-row { margin-top: 5px; }
+.intro-pin-row span { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid #c9af85; border-radius: 50%; background: #f8e5c4; color: #493b2a; font-size: 13px; font-weight: 700; }

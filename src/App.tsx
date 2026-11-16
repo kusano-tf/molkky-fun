@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { toBlob } from "html-to-image";
 import { OverlayDialog } from "./OverlayDialog";
 import { AppGuide } from "./AppGuide";
+import { MolkkyIntroduction } from "./MolkkyIntroduction";
 import { useLiveSharing } from "./useLiveSharing";
 import { LiveSharingPanel } from "./LiveSharingPanel";
 import { LiveGameView } from "./LiveGameView";
@@ -356,6 +357,7 @@ function App() {
   const [showHistory, setShowHistory] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [showIntroduction, setShowIntroduction] = useState(false);
   const [showLiveSharing, setShowLiveSharing] = useState(false);
   const [selectedHistoryGameId, setSelectedHistoryGameId] = useState<string | null>(null);
   const [showCareerAnalysis, setShowCareerAnalysis] = useState(false);
@@ -517,7 +519,7 @@ function App() {
 
   function openGameActions() {
     setShowLiveSharing(false);
-    setShowGuide(false);
+    setShowGuide(false); setShowIntroduction(false);
     setShowHistory(false);
     setSelectedHistoryGameId(null);
     setMenuOpen(true);
@@ -745,7 +747,7 @@ function App() {
           }}>{live.host.phase === "ready" ? `共有中 · ${live.host.viewers}台` : live.host.phase === "starting" ? "共有準備中" : "共有を確認"}</button>}
           <button className="icon-button menu-toggle" aria-label="メニューを開く" aria-haspopup="dialog" aria-expanded={menuOpen} onClick={() => {
             setShowLiveSharing(false);
-            setShowGuide(false);
+            setShowGuide(false); setShowIntroduction(false);
             setShowHistory(false);
             setSelectedHistoryGameId(null);
             setMenuOpen(true);
@@ -764,11 +766,11 @@ function App() {
 
       <OverlayDialog
         open={menuOpen}
-        title={showLiveSharing ? "ライブ共有・観戦" : showGuide ? "使い方・分析指標" : selectedHistoryGame ? "試合結果" : showHistory ? (showCareerAnalysis ? "個人分析" : "試合履歴") : "メニュー"}
-        pageKey={showLiveSharing ? "live" : showGuide ? "guide" : selectedHistoryGame?.id ?? (showHistory ? (showCareerAnalysis ? "career" : "history") : "menu")}
+        title={showLiveSharing ? "ライブ共有・観戦" : showIntroduction ? "モルック入門" : showGuide ? "使い方・分析指標" : selectedHistoryGame ? "試合結果" : showHistory ? (showCareerAnalysis ? "個人分析" : "試合履歴") : "メニュー"}
+        pageKey={showLiveSharing ? "live" : showIntroduction ? "introduction" : showGuide ? "guide" : selectedHistoryGame?.id ?? (showHistory ? (showCareerAnalysis ? "career" : "history") : "menu")}
         onClose={() => setMenuOpen(false)}
-        onBack={showLiveSharing ? () => { setShowLiveSharing(false); setShowGuide(false); setShowHistory(false); }
-          : showGuide ? () => setShowGuide(false) : selectedHistoryGame ? () => setSelectedHistoryGameId(null)
+        onBack={showLiveSharing ? () => { setShowLiveSharing(false); setShowGuide(false); setShowIntroduction(false); setShowHistory(false); }
+          : showIntroduction ? () => setShowIntroduction(false) : showGuide ? () => setShowGuide(false) : selectedHistoryGame ? () => setSelectedHistoryGameId(null)
           : showHistory ? () => {
             if (showCareerAnalysis) {
               setShowCareerAnalysis(false);
@@ -790,7 +792,7 @@ function App() {
           onStart={() => void live.startHost()} onStop={live.stopHost}
           onJoin={(invitation) => { void live.join(invitation); setMenuOpen(false); }}
           onLeave={() => { live.leave(); setMenuOpen(false); }} onRetry={live.retry}
-        /> : showGuide ? <AppGuide /> : !showHistory ? (
+        /> : showIntroduction ? <MolkkyIntroduction /> : showGuide ? <AppGuide /> : !showHistory ? (
           <nav className="menu-options" aria-label="アプリメニュー">
             {game && !live.viewer && <section className="game-menu-actions" aria-labelledby="game-actions-title">
               <h3 id="game-actions-title">現在の試合</h3>
@@ -802,6 +804,7 @@ function App() {
             <button type="button" onClick={() => setShowLiveSharing(true)}>ライブ共有・観戦 <span>→</span></button>
             <button type="button" onClick={exportData}>データを書き出す <span>↓</span></button>
             <button type="button" disabled={!!live.viewer} onClick={() => fileInput.current?.click()}>データを読み込む <span>↑</span></button>
+            <button type="button" onClick={() => setShowIntroduction(true)}>モルック入門 <span>→</span></button>
             <button type="button" onClick={() => setShowGuide(true)}>使い方・分析指標 <span>→</span></button>
           </nav>
         ) : selectedHistoryGame ? (
