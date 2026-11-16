@@ -15,6 +15,9 @@ import {
   getPlayerCareerAnalysis,
   isAppData,
   scoreThrow,
+  getThrowPoints,
+  getInputMode,
+  type InputMode,
   STORAGE_KEY,
   type AppData,
   type Game,
@@ -186,6 +189,7 @@ function GameResults({ game, isSharing, onShare, onNewGame }: {
           </p>
           <div className="analysis-meta">
             <span>{formatDateTime(game.startedAt)}</span>
+            <span>{getInputMode(game) === "simple" ? t("簡易入力") : t("詳細入力")}</span>
             <span>{t("{0} 投", [game.turns.length])}</span>
             <span>{formatDuration(game.startedAt, analysis.completedAt)}</span>
           </div>
@@ -316,16 +320,16 @@ function GameResults({ game, isSharing, onShare, onNewGame }: {
                   }
                   const { turn, turnIndex } = item;
                   const player = game.players.find((candidate) => candidate.id === turn.playerId);
-                  const points = scoreThrow(turn.pins);
+                  const points = getThrowPoints(turn);
                   return (
                     <div className="history-matrix-cell" key={unitStats.unit.id}>
                       <div>
-                        <b>{turn.pins.length ? `+${points}` : t("ミス")}</b>
+                        <b>{getThrowPoints(turn) > 0 ? `+${points}` : t("ミス")}</b>
                         <span>{t("{0} 点", [analysis.progress[turnIndex].scores[unitStats.unit.id]])}</span>
                       </div>
                       <small>
                         {game.mode === "team" ? `${player?.name ?? ""} · ` : ""}
-                        {turn.pins.length ? turn.pins.join("・") : "—"}
+                        {turn.pins?.length ? turn.pins.join("・") : turn.pins ? "—" : t("得点のみ")}
                       </small>
                     </div>
                   );
@@ -361,6 +365,7 @@ function App() {
   const [mode, setMode] = useState<GameMode>("individual");
   const [teams, setTeams] = useState(makeDefaultTeams);
   const [players, setPlayers] = useState(() => makeDefaultPlayers(makeDefaultTeams()));
+  const [inputMode, setInputMode] = useState<InputMode>("simple");
   const [selectedPins, setSelectedPins] = useState<number[]>([]);
   const [notice, setNotice] = useState("");
   const [showHistory, setShowHistory] = useState(false);
@@ -391,6 +396,7 @@ function App() {
   }, [data]);
 
   const game = data.currentGame;
+  const isSimpleInput = game ? getInputMode(game) === "simple" : inputMode === "simple";
   const status = game ? getGameStatus(game) : null;
   const currentPlayer = game?.players.find((player) => player.id === status?.currentPlayerId);
   const scoreUnits = game ? getScoreUnits(game) : [];
@@ -452,20 +458,25 @@ function App() {
     }
     setData((current) => ({
       ...current,
-      currentGame: createGame(activePlayers, mode, activeTeams),
+      currentGame: createGame(activePlayers, mode, activeTeams, inputMode),
     }));
     setSelectedPins([]);
     setNotice("");
   }
 
-  function submitThrow(pins: number[]) {
+  function submitThrow(input: number[] | number) {
     if (live.viewer) return;
     if (!game || !status?.currentPlayerId || status.winnerId) return;
+    const points = typeof input === "number" ? input : scoreThrow(input);
+    if (!Number.isInteger(points) || points < 0 || points > 12) return;
+    if (!isSimpleInput && typeof input === "number") return;
+    const baseRecord = { playerId: status.currentPlayerId, playedAt: new Date().toISOString(), points };
+    const record = !isSimpleInput && Array.isArray(input) ? { ...baseRecord, pins: input } : baseRecord;
     const nextGame: Game = {
       ...game,
       turns: [
         ...game.turns,
-        { playerId: status.currentPlayerId, pins, playedAt: new Date().toISOString() },
+        record,
       ],
     };
     const nextStatus = getGameStatus(nextGame);
@@ -500,6 +511,7 @@ function App() {
     }
     if (game) {
       setMode(game.mode ?? "individual");
+      setInputMode(getInputMode(game));
       setTeams(game.teams?.map((team) => ({ ...team })) ?? makeDefaultTeams());
       setPlayers(game.players.map((player) => ({ ...player })));
     } else {
@@ -519,7 +531,7 @@ function App() {
     if (!window.confirm(t("同じメンバー・投球順で最初から始めますか？ 現在の試合の得点・投球記録はリセットされます。終了済みの試合履歴は残ります。"))) return;
     setData((current) => ({
       ...current,
-      currentGame: createGame(game.players, game.mode ?? "individual", game.teams ?? []),
+      currentGame: createGame(game.players, game.mode ?? "individual", game.teams ?? [], getInputMode(game)),
     }));
     setSelectedPins([]);
     setNotice("");
@@ -923,6 +935,23 @@ function App() {
                         <small>{t("{0} 成功 / {1} 機会", [selectedCareerPlayer.exactFinishes, selectedCareerPlayer.finishAttempts])}</small>
                       </div>
                     </div>
+                    <section className="detailed-analysis" aria-labelledby="detailed-analysis-title">
+                      <h3 id="detailed-analysis-title">{t("詳細入力の追加分析")}</h3>
+                      {selectedCareerPlayer.detailedThrows > 0 ? <>
+                        <p className="helper-text">{t("詳細入力 {0} 試合・{1} 投が対象", [selectedCareerPlayer.detailedGames, selectedCareerPlayer.detailedThrows])}</p>
+                        <div className="career-stat-grid">
+                          <div><span>{t("1本倒し")}</span><strong>{t("{0} 回", [selectedCareerPlayer.singlePinThrows])}</strong></div>
+                          <div><span>{t("複数本倒し")}</span><strong>{t("{0} 回", [selectedCareerPlayer.multiPinThrows])}</strong></div>
+                        </div>
+                        <h4>{t("ピン別に倒した回数")}</h4>
+                        <dl className="pin-count-grid">
+                          {selectedCareerPlayer.pinCounts.map((count, index) => <div key={index}>
+                            <dt>{t("ピン {0}", [index + 1])}</dt><dd>{t("{0} 回", [count])}</dd>
+                          </div>)}
+                        </dl>
+                        <p className="helper-text">{t("倒れた結果の集計です。狙ったピンへの命中率ではありません。簡易入力の投球は含みません。")}</p>
+                      </> : <p className="helper-text">{t("詳細入力の試合を記録すると、ピン別の集計を確認できます。")}</p>}
+                    </section>
                     <div className="career-radar-card">
                       <div className="section-heading">
                         <div><p className="eyebrow">CAREER RADAR</p><h3>{t("得意度バランス")}</h3></div>
@@ -983,6 +1012,15 @@ function App() {
                 onClick={() => setMode("team")}
               >{t("チーム戦")}</button>
             </div>
+            <fieldset className="input-mode-picker">
+              <legend>{t("入力モード")}</legend>
+              <div className="mode-switch">
+                <button type="button" aria-pressed={inputMode === "simple"} className={inputMode === "simple" ? "mode-selected" : ""} onClick={() => setInputMode("simple")}>{t("簡易入力")}</button>
+                <button type="button" aria-pressed={inputMode === "detailed"} className={inputMode === "detailed" ? "mode-selected" : ""} onClick={() => setInputMode("detailed")}>{t("詳細入力")}</button>
+              </div>
+              <p className="helper-text">{inputMode === "simple" ? t("得点をタップするだけで記録。基本の分析ができます。") : t("倒れたピンを選んで記録。ピン別の追加分析ができます。")}</p>
+              <p className="input-mode-note">{t("入力モードは試合中に変更できません。")}</p>
+            </fieldset>
             {mode === "team" && (
               <div className="team-setup">
                 <div className="list-subheading">
@@ -1214,8 +1252,17 @@ function App() {
 
             <aside className="throw-card">
               <div className="section-heading">
-                <div><p className="eyebrow">YOUR THROW</p><h2>{t("倒れたピンを選ぶ")}</h2></div>
+                <div><p className="eyebrow">YOUR THROW</p><h2>{isSimpleInput ? t("得点をタップして記録") : t("倒れたピンを選ぶ")}</h2></div>
+                <span className="muted">{isSimpleInput ? t("簡易入力") : t("詳細入力")}</span>
               </div>
+              {isSimpleInput ? <>
+                <p className="helper-text">{t("点数を押すとすぐに記録します。0点は「今回はミス」。")}</p>
+                <div className="pin-grid simple-score-grid">
+                  {Array.from({ length: 12 }, (_, index) => index + 1).map((points) => (
+                    <button type="button" className="simple-score-button" key={points} onClick={() => submitThrow(points)} aria-label={t("{0}点を記録する", [points])}>{points}<small>{t("点")}</small></button>
+                  ))}
+                </div>
+              </> : <>
               <p className="helper-text">{t("倒れたピンをすべて選択してください。")}</p>
               <div className="pin-grid">
                 {Array.from({ length: 12 }, (_, index) => index + 1).map((pin) => (
@@ -1236,15 +1283,16 @@ function App() {
                 <strong>{selectedPins.length ? scoreThrow(selectedPins) : "—"}<small>{t("点")}</small></strong>
                 <small>{selectedPins.length === 1 ? t("ピンの数字が得点") : selectedPins.length > 1 ? t("倒れた本数が得点") : t("ピンを選択してください")}</small>
               </div>
+              </>}
               <div className="throw-actions bottom-action-bar">
                 {(isReach || isLastChance) && <p className="action-situation">
                   {isReach && <span className="reach-label">{t("✦ あと {0} 点で勝利", [remainingPoints])}</span>}
                   {isLastChance && <span className="danger-label">{t("次のミスで失格")}</span>}
                 </p>}
-                <div className="throw-record-actions">
-                  <button className="primary-button record-button" disabled={!selectedPins.length || isFinished} onClick={() => submitThrow(selectedPins)}>
+                <div className={`throw-record-actions${isSimpleInput ? " simple-record-actions" : ""}`}>
+                  {!isSimpleInput && <button className="primary-button record-button" disabled={!selectedPins.length || isFinished} onClick={() => submitThrow(selectedPins)}>
                     {selectedPins.length ? t("{0}点を記録する", [scoreThrow(selectedPins)]) : t("得点を記録する")} <span>→</span>
-                  </button>
+                  </button>}
                   <button type="button" className={`miss-button ${isLastChance ? "miss-button-danger" : ""}`} disabled={isFinished} onClick={() => submitThrow([])}>{t("今回はミス")}</button>
                 </div>
               </div>
@@ -1311,8 +1359,8 @@ function App() {
                       <li key={`${turn.playedAt}-${index}`}>
                         <span className="throw-index">{game!.turns.length - index}</span>
                         <strong>{player?.name}</strong>
-                        <span>{turn.pins.length ? t("{0}を倒した", [turn.pins.length === 1 ? t("ピン {0}", [turn.pins[0]]) : t("{0} 本", [turn.pins.length])]) : t("ミス")}</span>
-                        <b>{turn.pins.length ? `+${scoreThrow(turn.pins)}` : "—"}</b>
+                        <span>{getThrowPoints(turn) === 0 ? t("ミス") : turn.pins ? t("{0}を倒した", [turn.pins.length === 1 ? t("ピン {0}", [turn.pins[0]]) : t("{0} 本", [turn.pins.length])]) : t("得点のみ")}</span>
+                        <b>{getThrowPoints(turn) > 0 ? `+${getThrowPoints(turn)}` : "—"}</b>
                       </li>
                     );
                   })}

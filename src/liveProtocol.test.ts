@@ -20,7 +20,7 @@ describe("live snapshots", () => {
     expect(decodeSnapshot("not JSON", "session", -1)).toBeNull();
     expect(decodeSnapshot("x".repeat(1_000_001), "session", -1)).toBeNull();
     const snapshot = JSON.parse(encodeSnapshot("session", 0, game));
-    for (const change of [{ version: 2 }, { type: "edit" }, { revision: -1 }, { revision: 0.5 }, { game: {} }]) {
+    for (const change of [{ version: 1 }, { version: 99 }, { type: "edit" }, { revision: -1 }, { revision: 0.5 }, { game: {} }]) {
       expect(decodeSnapshot(JSON.stringify({ ...snapshot, ...change }), "session", -1)).toBeNull();
     }
     const invalid = { ...game, turns: [{ playerId: "b", pins: [12], playedAt: new Date().toISOString() }] };

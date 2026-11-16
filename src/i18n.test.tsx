@@ -121,4 +121,20 @@ describe("English match screens", () => {
     expect(html).toContain("Share match results");
     expect(japanese.test(html.replaceAll("草野", ""))).toBe(false);
   });
+
+  it("renders quick scoring with no pin selection controls or invented pin history", () => {
+    const quick: Game = { ...game, inputMode: "simple", turns: [{ playerId: "a", points: 3, playedAt: "2026-11-16T00:01:00Z" }] };
+    const html = renderMatch(quick);
+    expect(html).toContain("Tap a score to record");
+    expect(html).toContain('aria-label="Record 12 points"');
+    expect(html).toContain("Score only");
+    expect(html).not.toContain("Select fallen pins");
+    expect(html).not.toContain('aria-pressed=');
+    expect(japanese.test(html)).toBe(false);
+    const live = renderToStaticMarkup(<LiveGameView game={quick} state={{ phase: "live", error: "", updatedAt: null }} onRetry={() => {}} onLeave={() => {}} />);
+    expect(live).toContain("Score only");
+    expect(live).toContain("+3");
+    expect(japanese.test(live)).toBe(false);
+  });
+
 });

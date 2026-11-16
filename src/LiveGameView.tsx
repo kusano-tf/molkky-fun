@@ -1,6 +1,6 @@
 import { t, getLocale } from "./i18n";
 import type { ReactNode } from "react";
-import { getGameStatus, getScoreUnits, scoreThrow, type Game } from "./game";
+import { getGameStatus, getScoreUnits, getThrowPoints, type Game } from "./game";
 import type { ViewerState } from "./liveTransport";
 
 export function LiveGameView({ game, state, onRetry, onLeave, children }: {
@@ -52,8 +52,8 @@ export function LiveGameView({ game, state, onRetry, onLeave, children }: {
             {game.turns.slice(-12).reverse().map((turn, index) => <li key={`${game.turns.length - index}`}>
               <span className="throw-index">{game.turns.length - index}</span>
               <strong>{game.players.find((player) => player.id === turn.playerId)?.name}</strong>
-              <span>{turn.pins.length ? turn.pins.join("・") : t("ミス")}</span>
-              <b>{turn.pins.length ? `+${scoreThrow(turn.pins)}` : "—"}</b>
+              <span>{getThrowPoints(turn) === 0 ? t("ミス") : turn.pins ? turn.pins.join("・") : t("得点のみ")}</span>
+              <b>{getThrowPoints(turn) > 0 ? `+${getThrowPoints(turn)}` : "—"}</b>
             </li>)}
           </ol>}
         </section>

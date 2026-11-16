@@ -1,7 +1,8 @@
 import { isAppData, type Game } from "./game";
 
 export const LIVE_PROTOCOL = "molkky-fun/live";
-export const LIVE_VERSION = 1;
+// Version 2 supports score-only throws without inventing fallen pin numbers.
+export const LIVE_VERSION = 2;
 export const MAX_LIVE_MESSAGE_LENGTH = 1_000_000;
 
 export type LiveInvitation = { peerId: string; token: string };

@@ -1,3 +1,5 @@
+export type InputMode = "simple" | "detailed";
+
 export type GameMode = "individual" | "team";
 
 export type Player = {
@@ -13,14 +15,17 @@ export type Team = {
 
 export type ThrowRecord = {
   playerId: string;
-  pins: number[];
   playedAt: string;
-};
+} & (
+  | { points: number; pins?: never }
+  | { points?: number; pins: number[] }
+);
 
 export type Game = {
   id: string;
   ruleVersion?: 2;
   mode?: GameMode;
+  inputMode?: InputMode;
   players: Player[];
   teams?: Team[];
   startedAt: string;
@@ -90,6 +95,11 @@ export type PlayerCareerAnalysis = {
   finishAttempts: number;
   exactFinishes: number;
   finishRate: number | null;
+  detailedGames: number;
+  detailedThrows: number;
+  singlePinThrows: number;
+  multiPinThrows: number;
+  pinCounts: number[];
   radarValues: {
     accuracy: number;
     averagePoints: number;
@@ -111,11 +121,13 @@ export function createGame(
   players: Player[],
   mode: GameMode = "individual",
   teams: Team[] = [],
+  inputMode: InputMode = "detailed",
 ): Game {
   return {
     id: crypto.randomUUID(),
     ruleVersion: 2,
     mode,
+    inputMode,
     players: players.map((player) => ({ ...player })),
     ...(mode === "team" ? { teams: teams.map((team) => ({ ...team })) } : {}),
     startedAt: new Date().toISOString(),
@@ -141,6 +153,14 @@ export function getScoreUnits(game: Game): ScoreUnit[] {
 
 export function scoreThrow(pins: number[]): number {
   return pins.length === 1 ? pins[0] : pins.length;
+}
+
+export function getThrowPoints(turn: ThrowRecord): number {
+  return turn.points ?? scoreThrow(turn.pins ?? []);
+}
+
+export function getInputMode(game: Game): InputMode {
+  return game.inputMode ?? "detailed";
 }
 
 export function getGameStatus(game: Game): GameStatus {
@@ -176,13 +196,13 @@ function replayGame(
       throw new Error("試合データの投球順が正しくありません。");
     }
 
-    if (turn.pins.length === 0) {
+    if (getThrowPoints(turn) === 0) {
       unitScore.consecutiveMisses += 1;
       if (unitScore.consecutiveMisses >= 3) {
         unitScore.eliminated = true;
       }
     } else {
-      const points = scoreThrow(turn.pins);
+      const points = getThrowPoints(turn);
       const total = unitScore.score + points;
       unitScore.score = total > 50 ? 25 : total;
       unitScore.consecutiveMisses = 0;
@@ -247,11 +267,11 @@ export function getGameAnalysis(game: Game): GameAnalysis {
     if (!stats) {
       throw new Error("投球結果の集計先を分析できません。");
     }
-    const points = scoreThrow(turn.pins);
+    const points = getThrowPoints(turn);
     stats.throws += 1;
     stats.totalPoints += points;
     stats.bestThrow = Math.max(stats.bestThrow, points);
-    if (turn.pins.length === 0) {
+    if (getThrowPoints(turn) === 0) {
       stats.misses += 1;
     } else {
       stats.scoringThrows += 1;
@@ -305,6 +325,11 @@ export function getPlayerCareerAnalysis(games: Game[]): PlayerCareerAnalysis[] {
       throwScores: number[];
       finishAttempts: number;
       exactFinishes: number;
+      detailedGames: number;
+      detailedThrows: number;
+      singlePinThrows: number;
+      multiPinThrows: number;
+      pinCounts: number[];
     }
   >();
 
@@ -330,10 +355,16 @@ export function getPlayerCareerAnalysis(games: Game[]): PlayerCareerAnalysis[] {
           throwScores: [],
           finishAttempts: 0,
           exactFinishes: 0,
+          detailedGames: 0,
+          detailedThrows: 0,
+          singlePinThrows: 0,
+          multiPinThrows: 0,
+          pinCounts: Array<number>(12).fill(0),
         };
         players.set(player.id, stats);
       }
       stats.gamesPlayed += 1;
+      if (getInputMode(game) === "detailed") stats.detailedGames += 1;
       if (winningUnit?.playerIds.includes(player.id)) stats.gamesWon += 1;
     }
 
@@ -345,7 +376,7 @@ export function getPlayerCareerAnalysis(games: Game[]): PlayerCareerAnalysis[] {
       if (!stats) {
         throw new Error("試合データの選手を集計できません。");
       }
-      const points = scoreThrow(turn.pins);
+      const points = getThrowPoints(turn);
       const unitId = unitByPlayer.get(turn.playerId)!;
       const remaining = 50 - (previousScores.get(unitId) ?? 0);
       if (remaining >= 13) {
@@ -360,8 +391,14 @@ export function getPlayerCareerAnalysis(games: Game[]): PlayerCareerAnalysis[] {
       stats.throws += 1;
       stats.totalPoints += points;
       stats.throwScores.push(points);
+      if (turn.pins !== undefined) {
+        stats.detailedThrows += 1;
+        if (turn.pins.length === 1) stats.singlePinThrows += 1;
+        if (turn.pins.length >= 2) stats.multiPinThrows += 1;
+        turn.pins.forEach((pin) => { stats.pinCounts[pin - 1] += 1; });
+      }
       stats.bestThrow = Math.max(stats.bestThrow ?? 0, points);
-      if (turn.pins.length === 0) {
+      if (getThrowPoints(turn) === 0) {
         stats.misses += 1;
       } else {
         stats.scoringThrows += 1;
@@ -402,6 +439,11 @@ export function getPlayerCareerAnalysis(games: Game[]): PlayerCareerAnalysis[] {
       finishAttempts: stats.finishAttempts,
       exactFinishes: stats.exactFinishes,
       finishRate,
+      detailedGames: stats.detailedGames,
+      detailedThrows: stats.detailedThrows,
+      singlePinThrows: stats.singlePinThrows,
+      multiPinThrows: stats.multiPinThrows,
+      pinCounts: stats.pinCounts,
       radarValues: {
         accuracy: accuracy ?? 0,
         averagePoints: averagePoints === null ? 0 : (averagePoints / 12) * 100,
@@ -442,6 +484,7 @@ function isGame(value: unknown): value is Game {
     typeof startedAt !== "string" ||
     (ruleVersion !== undefined && ruleVersion !== 2) ||
     (mode !== undefined && mode !== "individual" && mode !== "team") ||
+    (value.inputMode !== undefined && value.inputMode !== "simple" && value.inputMode !== "detailed") ||
     !Array.isArray(players) ||
     players.length < 2 ||
     !players.every(isPlayer) ||
@@ -466,7 +509,7 @@ function isGame(value: unknown): value is Game {
   const playerIds = players.map((player) => player.id);
   if (
     new Set(playerIds).size !== playerIds.length ||
-    !turns.every((turn) => isThrowRecord(turn, playerIds))
+    !turns.every((turn) => isThrowRecord(turn, playerIds, value.inputMode === "simple" ? "simple" : "detailed"))
   ) {
     return false;
   }
@@ -475,6 +518,7 @@ function isGame(value: unknown): value is Game {
     startedAt,
     players,
     turns,
+    ...(value.inputMode ? { inputMode: value.inputMode as InputMode } : {}),
     ...(ruleVersion === 2 ? { ruleVersion } : {}),
     ...(mode ? { mode } : {}),
     ...(Array.isArray(teams) ? { teams } : {}),
@@ -508,18 +552,15 @@ function isTeam(value: unknown): value is Team {
   );
 }
 
-function isThrowRecord(value: unknown, playerIds: string[]): boolean {
-  return (
-    isRecord(value) &&
-    typeof value.playerId === "string" &&
-    playerIds.includes(value.playerId) &&
-    typeof value.playedAt === "string" &&
-    Array.isArray(value.pins) &&
-    value.pins.every(
-      (pin: unknown) => Number.isInteger(pin) && Number(pin) >= 1 && Number(pin) <= 12,
-    ) &&
-    new Set(value.pins).size === value.pins.length
-  );
+function isThrowRecord(value: unknown, playerIds: string[], inputMode: InputMode): boolean {
+  if (!isRecord(value) || typeof value.playerId !== "string" ||
+      !playerIds.includes(value.playerId) || typeof value.playedAt !== "string") return false;
+  const validPoints = Number.isInteger(value.points) && Number(value.points) >= 0 && Number(value.points) <= 12;
+  if (inputMode === "simple") return validPoints && value.pins === undefined;
+  if (!Array.isArray(value.pins) || !value.pins.every(
+    (pin: unknown) => Number.isInteger(pin) && Number(pin) >= 1 && Number(pin) <= 12,
+  ) || new Set(value.pins).size !== value.pins.length) return false;
+  return value.points === undefined || (validPoints && value.points === scoreThrow(value.pins));
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
