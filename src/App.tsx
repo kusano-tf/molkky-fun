@@ -736,7 +736,7 @@ function App() {
   const inSetup = !game;
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell${game && !isFinished && !live.viewer ? " is-playing" : ""}`}>
       <header className="topbar">
         <a className="brand" href="#" onClick={(event) => event.preventDefault()} aria-label="Mölkky Fun">
           <img className="brand-wordmark" src={`${import.meta.env.BASE_URL}icons/wordmark.svg`} alt="Mölkky Fun" />
@@ -1233,13 +1233,12 @@ function App() {
                   {isReach && <span className="reach-label">{t("✦ あと {0} 点で勝利", [remainingPoints])}</span>}
                   {isLastChance && <span className="danger-label">{t("次のミスで失格")}</span>}
                 </p>}
-                <button className="primary-button record-button" disabled={!selectedPins.length || isFinished} onClick={() => submitThrow(selectedPins)}>
-                  {selectedPins.length ? t("{0}点を記録する", [scoreThrow(selectedPins)]) : t("得点を記録する")} <span>→</span>
-                </button>
-                <button className={`miss-button ${isLastChance ? "miss-button-danger" : ""}`} disabled={isFinished} onClick={() => submitThrow([])}>{t("今回はミス")}</button>
-              </div>
-              <div className="throw-footer">
-                <button className="text-button" disabled={!game!.turns.length} onClick={undoThrow}>{t("↶ 1投戻す")}</button>
+                <div className="throw-record-actions">
+                  <button className="primary-button record-button" disabled={!selectedPins.length || isFinished} onClick={() => submitThrow(selectedPins)}>
+                    {selectedPins.length ? t("{0}点を記録する", [scoreThrow(selectedPins)]) : t("得点を記録する")} <span>→</span>
+                  </button>
+                  <button type="button" className={`miss-button ${isLastChance ? "miss-button-danger" : ""}`} disabled={isFinished} onClick={() => submitThrow([])}>{t("今回はミス")}</button>
+                </div>
               </div>
             </aside>
 
@@ -1289,7 +1288,10 @@ function App() {
             <div className="recent-card">
               <div className="section-heading">
                 <div><p className="eyebrow">LAST THROWS</p><h2>{t("投球履歴")}</h2></div>
-                {game!.turns.length > 0 && <span className="muted">{t("{0} 投", [game!.turns.length])}</span>}
+                <div className="throw-history-actions">
+                  {game!.turns.length > 0 && <span className="muted">{t("{0} 投", [game!.turns.length])}</span>}
+                  <button type="button" className="undo-throw-button" disabled={!game!.turns.length || isFinished} onClick={undoThrow}>{t("↶ 直前を取り消す")}</button>
+                </div>
               </div>
               {game!.turns.length === 0 ? (
                 <p className="empty-copy">{t("最初の投球を記録しましょう。")}</p>
