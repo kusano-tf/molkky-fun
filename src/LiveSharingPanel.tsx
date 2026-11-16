@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { invitationCode, invitationUrl, parseInvitation, type LiveInvitation } from "./liveProtocol";
 import type { HostState, ViewerState } from "./liveTransport";
 
-export function LiveSharingPanel({ hasGame, host, viewer, onStart, onStop, onJoin, onLeave, onRetry }: {
-  hasGame: boolean;
+export function LiveSharingPanel({ host, viewer, onStart, onStop, onJoin, onLeave, onRetry }: {
   host: HostState | null;
   viewer: ViewerState | null;
   onStart: () => void;
@@ -53,8 +52,7 @@ export function LiveSharingPanel({ hasGame, host, viewer, onStart, onStop, onJoi
             <h3>この試合を共有</h3>
             {!host ? <>
               <p>ほかの端末に試合をリアルタイムで表示します。</p>
-              <button className="primary-button" disabled={!hasGame} onClick={onStart}>ライブ共有を始める</button>
-              {!hasGame && <p>試合を開始すると共有できます。</p>}
+              <button className="primary-button" onClick={onStart}>ライブ共有を始める</button>
             </> : <>
               <p role="status">{host.phase === "starting" ? "共有の準備中…" : host.phase === "ready" ? `${host.viewers} 台が観戦中` : host.error}</p>
               {host.phase !== "starting" && host.phase !== "error" && url && <>

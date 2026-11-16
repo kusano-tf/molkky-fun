@@ -23,7 +23,7 @@ export function useLiveSharing(game: Game | null) {
   }, []);
 
   const startHost = async () => {
-    if (!gameRef.current || viewer) return;
+    if (viewer) return;
     stopHost();
     const generation = ++hostGeneration.current;
     setHost({ phase: "starting", invitation: null, viewers: 0, error: "" });

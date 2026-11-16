@@ -764,7 +764,7 @@ function App() {
             onChange={(event) => void importData(event.target.files?.[0])}
           />
         {showLiveSharing ? <LiveSharingPanel
-          hasGame={!!game} host={live.host} viewer={live.viewer}
+          host={live.host} viewer={live.viewer}
           onStart={() => void live.startHost()} onStop={live.stopHost}
           onJoin={(invitation) => { void live.join(invitation); setMenuOpen(false); }}
           onLeave={() => { live.leave(); setMenuOpen(false); }} onRetry={live.retry}
