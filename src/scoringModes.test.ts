@@ -49,7 +49,7 @@ describe("fixed scoring input modes", () => {
     expect(getGameAnalysis(simple)).toEqual(getGameAnalysis(detailed));
     const common = (game: Game) => getPlayerCareerAnalysis([game]).map(({
       detailedGames: _games, detailedThrows: _throws, singlePinThrows: _single,
-      multiPinThrows: _multi, pinCounts: _counts, ...stats
+      multiPinThrows: _multi, singlePinCounts: _singleCounts, multiPinCounts: _multiCounts, ...stats
     }) => stats);
     expect(common(simple)).toEqual(common(detailed));
   });
@@ -75,7 +75,7 @@ describe("fixed scoring input modes", () => {
     const [alice] = getPlayerCareerAnalysis([simple, detailed]);
     expect(alice).toMatchObject({ gamesPlayed: 2, throws: 6, detailedGames: 1,
       detailedThrows: 3, singlePinThrows: 2, multiPinThrows: 1 });
-    expect(alice.pinCounts).toEqual([0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 2]);
+    expect(alice.singlePinCounts).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2]);
     const [quickOnly] = getPlayerCareerAnalysis([simple]);
     expect(quickOnly.detailedThrows).toBe(0);
     expect(quickOnly.detailedGames).toBe(0);

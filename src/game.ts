@@ -99,7 +99,8 @@ export type PlayerCareerAnalysis = {
   detailedThrows: number;
   singlePinThrows: number;
   multiPinThrows: number;
-  pinCounts: number[];
+  singlePinCounts: number[];
+  multiPinCounts: number[];
   radarValues: {
     accuracy: number;
     averagePoints: number;
@@ -329,7 +330,8 @@ export function getPlayerCareerAnalysis(games: Game[]): PlayerCareerAnalysis[] {
       detailedThrows: number;
       singlePinThrows: number;
       multiPinThrows: number;
-      pinCounts: number[];
+      singlePinCounts: number[];
+  multiPinCounts: number[];
     }
   >();
 
@@ -359,7 +361,8 @@ export function getPlayerCareerAnalysis(games: Game[]): PlayerCareerAnalysis[] {
           detailedThrows: 0,
           singlePinThrows: 0,
           multiPinThrows: 0,
-          pinCounts: Array<number>(12).fill(0),
+          singlePinCounts: Array<number>(12).fill(0),
+          multiPinCounts: Array<number>(11).fill(0),
         };
         players.set(player.id, stats);
       }
@@ -393,9 +396,14 @@ export function getPlayerCareerAnalysis(games: Game[]): PlayerCareerAnalysis[] {
       stats.throwScores.push(points);
       if (turn.pins !== undefined) {
         stats.detailedThrows += 1;
-        if (turn.pins.length === 1) stats.singlePinThrows += 1;
-        if (turn.pins.length >= 2) stats.multiPinThrows += 1;
-        turn.pins.forEach((pin) => { stats.pinCounts[pin - 1] += 1; });
+        if (turn.pins.length === 1) {
+          stats.singlePinThrows += 1;
+          stats.singlePinCounts[turn.pins[0] - 1] += 1;
+        }
+        if (turn.pins.length >= 2) {
+          stats.multiPinThrows += 1;
+          stats.multiPinCounts[turn.pins.length - 2] += 1;
+        }
       }
       stats.bestThrow = Math.max(stats.bestThrow ?? 0, points);
       if (getThrowPoints(turn) === 0) {
@@ -443,7 +451,8 @@ export function getPlayerCareerAnalysis(games: Game[]): PlayerCareerAnalysis[] {
       detailedThrows: stats.detailedThrows,
       singlePinThrows: stats.singlePinThrows,
       multiPinThrows: stats.multiPinThrows,
-      pinCounts: stats.pinCounts,
+      singlePinCounts: stats.singlePinCounts,
+      multiPinCounts: stats.multiPinCounts,
       radarValues: {
         accuracy: accuracy ?? 0,
         averagePoints: averagePoints === null ? 0 : (averagePoints / 12) * 100,

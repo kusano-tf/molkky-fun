@@ -1,5 +1,7 @@
 // Japanese source messages are stable lookup keys. Keep numbered placeholders in translations.
 export const en: Record<string, string> = {
+  "投球結果の割合": "Throw outcome breakdown",
+  "詳細入力の全投球（ミスを含む）：{0} 投": "All detailed throws, including misses: {0}",
   "端末の設定を保存できませんでした。この起動中のみ適用します。": "Could not save device settings. They will apply for this session only.",
   "詳細入力 {0} 試合・{1} セット・{2} 投が対象": "Based on {0} detailed matches, {1} sets and {2} throws",
   "チーム・投球順": "Teams & throwing order",
@@ -330,7 +332,7 @@ export const en: Record<string, string> = {
   "倒れた結果の集計です。狙ったピンへの命中率ではありません。簡易入力の投球は含みません。": "These counts describe fallen pins, not accuracy against an intended target. Quick-scoring throws are excluded.",
   "詳細入力の試合を記録すると、ピン別の集計を確認できます。": "Record matches with detailed scoring to see pin-level stats.",
   "入力モードは試合開始前に選びます。簡易入力は点数をタップすると即記録、詳細入力は倒れたピンを選んで得点を記録します。試合中のモード変更はできません。": "Choose the input mode before starting. Quick scoring records a score immediately when tapped. Detailed scoring records selected fallen pins using the score button. The mode cannot change during a match.",
-  "基本の分析は両モードの全試合が対象です。ピン別に倒した回数と1本倒し・複数本倒しは詳細入力の終了済み試合のみを集計し、対象試合数・投球数を表示します。簡易入力のピン情報を推測せず、狙ったピンへの命中率としては扱いません。": "Core stats use all completed matches in both modes. Pin counts and single-pin/multi-pin throws use completed detailed matches only, with sample sizes shown. Pin details are never guessed for quick scoring, and these counts do not measure accuracy against an intended target.",
+  "基本の分析は両モードの全試合が対象です。詳細入力の終了済み試合から、1本倒しはピン番号別、複数本倒しは倒した本数別に棒グラフで表示します。各グラフに対象回数を表示し、簡易入力やミスは含めません。狙ったピンへの命中率ではありません。": "Core stats use all completed matches in both modes. For completed detailed matches, bar charts show single-pin throws by pin number and multi-pin throws by the number of fallen pins. Each chart shows its sample size and excludes quick scoring and misses. These counts do not measure accuracy against an intended target.",
   "設定": "Settings",
   "変更": "Change",
   "先取セット数": "Sets to win",
@@ -352,5 +354,13 @@ export const en: Record<string, string> = {
   "メニューの「設定」で先取セット数と入力モードを選びます。登録画面の設定概要からも変更でき、進行中の試合には適用されません。": "Choose sets to win and the input mode in Settings. You can also open Settings from the setup summary. Changes do not affect a match in progress.",
   "セット終了後は最終投球を確認し、間違いがあれば取り消せます。確定後は次セットの投球順を調整して開始します。確定したセットは編集できません。": "After a set ends, check the final throw and undo it if necessary. Once confirmed, adjust the order and start the next set. Confirmed sets cannot be edited.",
   "先に指定数のセットを獲得すると試合終了です。3人・3チーム以上でも遊べます。各セットで得点・連続ミス・失格はリセットします。": "The first player or team to win the required number of sets wins the match. Three or more players or teams are supported. Scores, consecutive misses and eliminations reset for each set.",
-  "試合結果では獲得セット数とセット別の分析を確認できます。個人成績の参加試合数・勝率は試合単位、参加セット・獲得セットはセット単位です。投球の指標は全セットを通じて集計します。": "Match results show sets won and analysis for each set. Career matches and win rate count whole matches; sets played and won count individual sets. Throwing metrics combine all sets."
+  "試合結果では獲得セット数とセット別の分析を確認できます。個人成績の参加試合数・勝率は試合単位、参加セット・獲得セットはセット単位です。投球の指標は全セットを通じて集計します。": "Match results show sets won and analysis for each set. Career matches and win rate count whole matches; sets played and won count individual sets. Throwing metrics combine all sets.",
+  "対象：{0} 回": "Based on {0} throws",
+  "該当する投球はまだありません。": "No throws in this category yet.",
+  "回数": "Count",
+  "ピン番号": "Pin number",
+  "倒した本数": "Pins knocked down",
+  "数値で確認": "View counts",
+  "1本倒し：ピン番号別の回数": "Single-pin throws: by pin number",
+  "複数本倒し：本数別の回数": "Multi-pin throws: by pin count"
 };

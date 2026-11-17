@@ -11,6 +11,7 @@ import { addMatchThrow, confirmMatchSet, createMatch, emptyMatchData, getMatchCa
   getMatchStatus, getSetGame, readMatchData, startNextSet, undoMatchThrow,
   type Match, type MatchData } from "./match";
 import { readDeviceSettings, saveDeviceSettings } from "./deviceSettings";
+import { ThrowDistributionCharts } from "./ThrowDistributionCharts";
 import { MatchProgress, MatchSettingsPanel, NextSetSetup, SetReview } from "./MatchPanels";
 import { TeamThrowingOrder } from "./TeamThrowingOrder";
 import {
@@ -982,16 +983,7 @@ function App() {
                       <h3 id="detailed-analysis-title">{t("詳細入力の追加分析")}</h3>
                       {selectedCareerPlayer.detailedThrows > 0 ? <>
                         <p className="helper-text">{t("詳細入力 {0} 試合・{1} セット・{2} 投が対象", [selectedCareerPlayer.detailedGames, selectedCareerPlayer.detailedSets, selectedCareerPlayer.detailedThrows])}</p>
-                        <div className="career-stat-grid">
-                          <div><span>{t("1本倒し")}</span><strong>{t("{0} 回", [selectedCareerPlayer.singlePinThrows])}</strong></div>
-                          <div><span>{t("複数本倒し")}</span><strong>{t("{0} 回", [selectedCareerPlayer.multiPinThrows])}</strong></div>
-                        </div>
-                        <h4>{t("ピン別に倒した回数")}</h4>
-                        <dl className="pin-count-grid">
-                          {selectedCareerPlayer.pinCounts.map((count, index) => <div key={index}>
-                            <dt>{t("ピン {0}", [index + 1])}</dt><dd>{t("{0} 回", [count])}</dd>
-                          </div>)}
-                        </dl>
+                        <ThrowDistributionCharts stats={selectedCareerPlayer} />
                         <p className="helper-text">{t("倒れた結果の集計です。狙ったピンへの命中率ではありません。簡易入力の投球は含みません。")}</p>
                       </> : <p className="helper-text">{t("詳細入力の試合を記録すると、ピン別の集計を確認できます。")}</p>}
                     </section>
