@@ -367,3 +367,15 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .pin-count-grid > div { padding: 8px 4px; background: #f5f6f1; border-radius: 8px; text-align: center; }
 .pin-count-grid dt { color: #68756c; font-size: 10px; }
 .pin-count-grid dd { margin: 4px 0 0; color: var(--green); font-size: 12px; font-weight: 700; }
+
+.team-throwing-order { margin-bottom: 12px; border: 1px solid var(--line); border-radius: 11px; background: #f7f8f3; }
+.team-throwing-order summary { min-height: 44px; padding: 13px 12px; color: var(--green); font-size: 12px; font-weight: 600; cursor: pointer; }
+.team-order-note { margin: 0; padding: 0 12px 12px; color: #68756c; font-size: 11px; line-height: 1.7; }
+.team-order-list { display: grid; gap: 14px; margin: 0; padding: 0 12px 14px; list-style: none; }
+.team-order-heading { display: flex; align-items: center; gap: 8px; }
+.team-order-heading strong { min-width: 0; overflow-wrap: anywhere; color: var(--green); font-size: 13px; }
+.team-member-order { margin: 8px 0 0 42px; padding-left: 18px; }
+.team-member-order li { padding: 5px 0 5px 3px; color: #526057; font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+.team-member-order li::marker { color: #78837a; }
+.team-member-order li[aria-current] { color: var(--green); font-weight: 700; }
+.team-order-current { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 5px; background: #e2ecdd; color: var(--green); font-size: 10px; }

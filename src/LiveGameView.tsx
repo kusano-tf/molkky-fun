@@ -2,6 +2,7 @@ import { t, getLocale } from "./i18n";
 import type { ReactNode } from "react";
 import { getGameStatus, getScoreUnits, getThrowPoints, type Game } from "./game";
 import type { ViewerState } from "./liveTransport";
+import { TeamThrowingOrder } from "./TeamThrowingOrder";
 
 export function LiveGameView({ game, state, onRetry, onLeave, children }: {
   game: Game | null;
@@ -27,6 +28,7 @@ export function LiveGameView({ game, state, onRetry, onLeave, children }: {
         </div>
         <section className="scoreboard-card">
           <div className="section-heading"><h2>{t("スコア")}</h2><span className="muted">{t("{0} 投", [game.turns.length])}</span></div>
+          <TeamThrowingOrder key={game.id} game={game} currentPlayerId={status!.currentPlayerId} />
           <div className="score-list">
             {units.map((unit, index) => {
               const score = status!.scores[unit.id];

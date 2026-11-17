@@ -1,5 +1,7 @@
 // Japanese source messages are stable lookup keys. Keep numbered placeholders in translations.
 export const en: Record<string, string> = {
+  "チーム・投球順": "Teams & throwing order",
+  "チームはこの順で交代し、チーム内は番号順に投げます。": "Teams take turns in this order. Within each team, players throw in numbered order.",
   "成功率": "Scoring rate",
   "平均得点": "Average score",
   "10点以上率": "10+ point rate",

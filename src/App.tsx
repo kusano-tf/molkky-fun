@@ -7,6 +7,7 @@ import { MolkkyIntroduction } from "./MolkkyIntroduction";
 import { useLiveSharing } from "./useLiveSharing";
 import { LiveSharingPanel } from "./LiveSharingPanel";
 import { LiveGameView } from "./LiveGameView";
+import { TeamThrowingOrder } from "./TeamThrowingOrder";
 import {
   createGame,
   emptyData,
@@ -1302,6 +1303,7 @@ function App() {
               <div className="section-heading score-heading">
                 <div><p className="eyebrow">SCOREBOARD</p><h2>{t("スコア")}</h2></div>
               </div>
+              <TeamThrowingOrder key={game!.id} game={game!} currentPlayerId={status!.currentPlayerId} />
               <div className="score-list">
                 {scoreUnits.map((unit, index) => {
                   const unitScore = status!.scores[unit.id];
