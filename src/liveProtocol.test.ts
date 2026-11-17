@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { decodeSnapshot, encodeSnapshot, encodeHello, encodeHeartbeat, invitationCode, invitationUrl, isHeartbeat, isHello, parseInvitation } from "./liveProtocol";
-import { createGame } from "./game";
+import { createMatch } from "./match";
 
 describe("live snapshots", () => {
-  const game = createGame([{ id: "a", name: "A" }, { id: "b", name: "B" }]);
+  const game = createMatch([{ id: "a", name: "A" }, { id: "b", name: "B" }], "individual", [], { winsRequired: 2, inputMode: "detailed" });
 
   it("accepts a valid current game and a subsequent waiting state", () => {
     expect(decodeSnapshot(encodeSnapshot("session", 0, game), "session", -1)?.game).toEqual(game);
@@ -20,17 +20,17 @@ describe("live snapshots", () => {
     expect(decodeSnapshot("not JSON", "session", -1)).toBeNull();
     expect(decodeSnapshot("x".repeat(1_000_001), "session", -1)).toBeNull();
     const snapshot = JSON.parse(encodeSnapshot("session", 0, game));
-    for (const change of [{ version: 1 }, { version: 99 }, { type: "edit" }, { revision: -1 }, { revision: 0.5 }, { game: {} }]) {
+    for (const change of [{ version: 1 }, { version: 2 }, { version: 99 }, { type: "edit" }, { revision: -1 }, { revision: 0.5 }, { game: {} }]) {
       expect(decodeSnapshot(JSON.stringify({ ...snapshot, ...change }), "session", -1)).toBeNull();
     }
-    const invalid = { ...game, turns: [{ playerId: "b", pins: [12], playedAt: new Date().toISOString() }] };
+    const invalid = { ...game, sets: [{ ...game.sets[0], turns: [{ playerId: "b", points: 12, pins: [12], playedAt: new Date().toISOString() }] }] };
     expect(decodeSnapshot(encodeSnapshot("session", 0, invalid), "session", -1)).toBeNull();
   });
 
   it("accepts undo and next-match snapshots without transmitting local history", () => {
-    const played = { ...game, turns: [{ playerId: "a", pins: [12], playedAt: new Date().toISOString() }] };
-    expect(decodeSnapshot(encodeSnapshot("session", 1, played), "session", 0)?.game?.turns).toHaveLength(1);
-    expect(decodeSnapshot(encodeSnapshot("session", 2, game), "session", 1)?.game?.turns).toHaveLength(0);
+    const played = { ...game, sets: [{ ...game.sets[0], turns: [{ playerId: "a", points: 12, pins: [12], playedAt: new Date().toISOString() }] }] };
+    expect(decodeSnapshot(encodeSnapshot("session", 1, played), "session", 0)?.game?.sets[0].turns).toHaveLength(1);
+    expect(decodeSnapshot(encodeSnapshot("session", 2, game), "session", 1)?.game?.sets[0].turns).toHaveLength(0);
     expect(JSON.parse(encodeSnapshot("session", 3, game))).not.toHaveProperty("history");
   });
 });

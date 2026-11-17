@@ -1,4 +1,4 @@
-import { t, useLanguage, setLanguage, getLocale } from "./i18n";
+import { t, getLocale, useLanguage } from "./i18n";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { toBlob } from "html-to-image";
 import { OverlayDialog } from "./OverlayDialog";
@@ -7,20 +7,19 @@ import { MolkkyIntroduction } from "./MolkkyIntroduction";
 import { useLiveSharing } from "./useLiveSharing";
 import { LiveSharingPanel } from "./LiveSharingPanel";
 import { LiveGameView } from "./LiveGameView";
+import { addMatchThrow, confirmMatchSet, createMatch, emptyMatchData, getMatchCareerAnalysis,
+  getMatchStatus, getSetGame, readMatchData, startNextSet, undoMatchThrow,
+  type Match, type MatchData } from "./match";
+import { readDeviceSettings, saveDeviceSettings } from "./deviceSettings";
+import { MatchProgress, MatchSettingsPanel, NextSetSetup, SetReview } from "./MatchPanels";
 import { TeamThrowingOrder } from "./TeamThrowingOrder";
 import {
-  createGame,
-  emptyData,
   getGameAnalysis,
   getGameStatus,
-  getPlayerCareerAnalysis,
-  isAppData,
   scoreThrow,
   getThrowPoints,
   getInputMode,
-  type InputMode,
   STORAGE_KEY,
-  type AppData,
   type Game,
   type GameMode,
   type Player,
@@ -109,17 +108,18 @@ function CareerRadarChart({ values }: { values: PlayerCareerAnalysis["radarValue
   );
 }
 
-function loadData(): { data: AppData; error: string | null } {
+function loadData(): { data: MatchData; error: string | null } {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return { data: emptyData(), error: null };
+    if (!stored) return { data: emptyMatchData(), error: null };
     const parsed: unknown = JSON.parse(stored);
-    if (!isAppData(parsed)) {
-      return { data: emptyData(), error: "保存データを読み込めません。インポートから復元してください。" };
+    const normalized = readMatchData(parsed);
+    if (!normalized) {
+      return { data: emptyMatchData(), error: "保存データを読み込めません。インポートから復元してください。" };
     }
-    return { data: parsed, error: null };
+    return { data: normalized, error: null };
   } catch {
-    return { data: emptyData(), error: "保存データを読み込めません。ブラウザーの保存領域を確認してください。" };
+    return { data: emptyMatchData(), error: "保存データを読み込めません。ブラウザーの保存領域を確認してください。" };
   }
 }
 
@@ -357,16 +357,47 @@ function GameResults({ game, isSharing, onShare, onNewGame }: {
   );
 }
 
+function MatchResults({ match, isSharing, onShare, onNewGame }: {
+  match: Match; isSharing: boolean; onShare: (target: HTMLDivElement | null) => Promise<void>; onNewGame?: () => void;
+}) {
+  const target = useRef<HTMLDivElement>(null);
+  const status = getMatchStatus(match);
+  const winner = getScoreUnits(getSetGame(match)).find((unit) => unit.id === status.winnerId);
+  const [setId, setSetId] = useState(match.sets.at(-1)!.id);
+  const selected = match.sets.find((set) => set.id === setId) ?? match.sets.at(-1)!;
+  return <section className="match-results">
+    <div ref={target} className="match-result-summary">
+      <h1>{winner ? t("{0} の勝ち！", [winner.name]) : t("試合終了")}</h1>
+      <p>{formatDateTime(match.startedAt)}</p>
+      <MatchProgress match={match} />
+      <ol className="set-result-list">{match.sets.map((set, index) => {
+        const game = getSetGame(match, set), result = getGameStatus(game);
+        const winner = getScoreUnits(game).find((unit) => unit.id === result.winnerId);
+        return <li key={set.id}>{t("第{0}セット", [index + 1])}: {winner?.name ?? t("終了")}</li>;
+      })}</ol>
+    </div>
+    <button className="primary-button analysis-share-button" disabled={isSharing} onClick={() => void onShare(target.current)}>{t("試合結果をシェア")} ↗</button>
+    <label className="career-player-picker"><span>{t("セット別の分析")}</span><select value={selected.id} onChange={(e) => setSetId(e.target.value)}>
+      {match.sets.map((set, i) => <option key={set.id} value={set.id}>{t("第{0}セット", [i + 1])}</option>)}
+    </select></label>
+    <GameResults key={selected.id} game={getSetGame(match, selected)} isSharing={isSharing} onShare={onShare} />
+    {onNewGame && <div className="bottom-action-bar"><button className="primary-button start-button" onClick={onNewGame}>{t("新しいゲームを始める")} →</button></div>}
+  </section>;
+}
+
 function App() {
-  const language = useLanguage();
+  useLanguage();
   const initial = useRef(loadData()).current;
   const [data, setData] = useState(initial.data);
   const [storageError, setStorageError] = useState(initial.error);
+  const [settings, setSettings] = useState(readDeviceSettings);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const persistenceError = storageError || settingsError;
   const skipFirstSave = useRef(Boolean(initial.error));
   const [mode, setMode] = useState<GameMode>("individual");
   const [teams, setTeams] = useState(makeDefaultTeams);
   const [players, setPlayers] = useState(() => makeDefaultPlayers(makeDefaultTeams()));
-  const [inputMode, setInputMode] = useState<InputMode>("simple");
+  const [showSettings, setShowSettings] = useState(false);
   const [selectedPins, setSelectedPins] = useState<number[]>([]);
   const [notice, setNotice] = useState("");
   const [showHistory, setShowHistory] = useState(false);
@@ -381,7 +412,16 @@ function App() {
   const fileInput = useRef<HTMLInputElement>(null);
   const careerAnalysisImageRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
-  const live = useLiveSharing(data.currentGame);
+  const live = useLiveSharing(data.currentMatch);
+
+  useEffect(() => {
+    try {
+      saveDeviceSettings(settings);
+      setSettingsError(null);
+    } catch {
+      setSettingsError("端末の設定を保存できませんでした。この起動中のみ適用します。");
+    }
+  }, [settings]);
 
   useEffect(() => {
     if (skipFirstSave.current) {
@@ -396,7 +436,11 @@ function App() {
     }
   }, [data]);
 
-  const game = data.currentGame;
+  const match = data.currentMatch;
+  const game = match ? getSetGame(match) : null;
+  const inputMode = settings.inputMode;
+  const matchFinished = match ? getMatchStatus(match).isFinished : false;
+  const setConfirmed = match?.sets.at(-1)?.confirmed ?? false;
   const isSimpleInput = game ? getInputMode(game) === "simple" : inputMode === "simple";
   const status = game ? getGameStatus(game) : null;
   const currentPlayer = game?.players.find((player) => player.id === status?.currentPlayerId);
@@ -408,9 +452,12 @@ function App() {
   const remainingPoints = currentScore ? 50 - currentScore.score : 50;
   const isReach = !isFinished && !!currentScore && !currentScore.eliminated && remainingPoints >= 1 && remainingPoints <= 12;
   const isLastChance = !isFinished && !!currentScore && !currentScore.eliminated && currentScore.consecutiveMisses === 2;
-  const remoteFinished = live.remoteGame ? getGameStatus(live.remoteGame).isFinished : false;
-  const screenKey = live.viewer ? `viewer:${live.remoteGame?.id ?? "waiting"}:${remoteFinished ? "result" : "play"}`
-    : `${game?.id ?? "setup"}:${isFinished ? "result" : "play"}`;
+  const remoteFinished = live.remoteGame ? getMatchStatus(live.remoteGame).isFinished : false;
+  const phase = matchFinished ? "result" : setConfirmed ? "prepare" : isFinished ? "review" : "play";
+  const remotePhase = remoteFinished ? "result" : live.remoteGame?.sets.at(-1)?.confirmed ? "prepare"
+    : live.remoteGame && getGameStatus(getSetGame(live.remoteGame)).isFinished ? "review" : "play";
+  const screenKey = live.viewer ? `viewer:${live.remoteGame?.id ?? "waiting"}:${live.remoteGame?.sets.at(-1)?.id}:${remotePhase}`
+    : `${game?.id ?? "setup"}:${phase}`;
   const previousScreenKey = useRef(screenKey);
 
   useEffect(() => {
@@ -421,11 +468,11 @@ function App() {
 
   const playerCareerStats = useMemo(() => {
     const completedGames =
-      game && isFinished && !data.history.some((pastGame) => pastGame.id === game.id)
-        ? [game, ...data.history]
+      match && matchFinished && !data.history.some((pastGame) => pastGame.id === match.id)
+        ? [match, ...data.history]
         : data.history;
-    return getPlayerCareerAnalysis(completedGames);
-  }, [data.history, game, isFinished]);
+    return getMatchCareerAnalysis(completedGames);
+  }, [data.history, match, matchFinished]);
   const selectedCareerPlayer =
     playerCareerStats.find((player) => player.playerId === selectedCareerPlayerId) ??
     playerCareerStats[0] ??
@@ -459,7 +506,7 @@ function App() {
     }
     setData((current) => ({
       ...current,
-      currentGame: createGame(activePlayers, mode, activeTeams, inputMode),
+      currentMatch: createMatch(activePlayers, mode, activeTeams, settings),
     }));
     setSelectedPins([]);
     setNotice("");
@@ -468,26 +515,9 @@ function App() {
   function submitThrow(input: number[] | number) {
     if (live.viewer) return;
     if (!game || !status?.currentPlayerId || status.winnerId) return;
-    const points = typeof input === "number" ? input : scoreThrow(input);
-    if (!Number.isInteger(points) || points < 0 || points > 12) return;
-    if (!isSimpleInput && typeof input === "number") return;
-    const baseRecord = { playerId: status.currentPlayerId, playedAt: new Date().toISOString(), points };
-    const record = !isSimpleInput && Array.isArray(input) ? { ...baseRecord, pins: input } : baseRecord;
-    const nextGame: Game = {
-      ...game,
-      turns: [
-        ...game.turns,
-        record,
-      ],
-    };
-    const nextStatus = getGameStatus(nextGame);
-    setData((current) => ({
-      ...current,
-      currentGame: nextGame,
-      history: nextStatus.isFinished
-        ? [nextGame, ...current.history.filter((item) => item.id !== nextGame.id)].slice(0, 50)
-        : current.history,
-    }));
+    if (!match) return;
+    const nextMatch = addMatchThrow(match, isSimpleInput ? (typeof input === "number" ? input : scoreThrow(input)) : input);
+    setData((current) => ({ ...current, currentMatch: nextMatch }));
     setSelectedPins([]);
     setNotice("");
   }
@@ -495,24 +525,28 @@ function App() {
   function undoThrow() {
     if (live.viewer) return;
     if (!game || game.turns.length === 0) return;
-    const previousGame = { ...game, turns: game.turns.slice(0, -1) };
-    setData((current) => ({
-      ...current,
-      currentGame: previousGame,
-      history: current.history.filter((item) => item.id !== game.id),
-    }));
+    if (!match || setConfirmed) return;
+    setData((current) => ({ ...current, currentMatch: undoMatchThrow(match) }));
     setSelectedPins([]);
     setNotice("直前の投球を取り消しました。");
   }
 
+  function confirmSet() {
+    if (!match || live.viewer) return;
+    const confirmed = confirmMatchSet(match);
+    setData((current) => ({ ...current, currentMatch: confirmed,
+      history: getMatchStatus(confirmed).isFinished
+        ? [confirmed, ...current.history.filter((past) => past.id !== confirmed.id)].slice(0, 50)
+        : current.history }));
+  }
+
   function startAnotherGame() {
     if (live.viewer) return;
-    if (game && !isFinished && !window.confirm(t("現在の試合の得点・投球記録を破棄して、プレイヤー登録に戻りますか？ メンバーと投球順は引き継ぎます。"))) {
+    if (game && !matchFinished && !window.confirm(t("現在の試合の得点・投球記録を破棄して、プレイヤー登録に戻りますか？ メンバーと投球順は引き継ぎます。"))) {
       return;
     }
     if (game) {
       setMode(game.mode ?? "individual");
-      setInputMode(getInputMode(game));
       setTeams(game.teams?.map((team) => ({ ...team })) ?? makeDefaultTeams());
       setPlayers(game.players.map((player) => ({ ...player })));
     } else {
@@ -521,7 +555,7 @@ function App() {
       setTeams(defaultTeams);
       setPlayers(makeDefaultPlayers(defaultTeams));
     }
-    setData((current) => ({ ...current, currentGame: null }));
+    setData((current) => ({ ...current, currentMatch: null }));
     setSelectedPins([]);
     setNotice("");
     setMenuOpen(false);
@@ -529,17 +563,28 @@ function App() {
 
   function restartGame() {
     if (live.viewer || !game) return;
-    if (!window.confirm(t("同じメンバー・投球順で最初から始めますか？ 現在の試合の得点・投球記録はリセットされます。終了済みの試合履歴は残ります。"))) return;
+    if (!window.confirm(t("同じメンバー・投球順で最初から始めますか？ 現在の試合の全セットの得点・投球記録はリセットされます。終了済みの試合履歴は残ります。"))) return;
     setData((current) => ({
       ...current,
-      currentGame: createGame(game.players, game.mode ?? "individual", game.teams ?? [], getInputMode(game)),
+      currentMatch: createMatch(game.players, game.mode ?? "individual", game.teams ?? [], match!.settings),
     }));
     setSelectedPins([]);
     setNotice("");
     setMenuOpen(false);
   }
 
+  function openSettings() {
+    setShowHistory(false);
+    setSelectedHistoryGameId(null);
+    setShowGuide(false);
+    setShowIntroduction(false);
+    setShowLiveSharing(false);
+    setShowSettings(true);
+    setMenuOpen(true);
+  }
+
   function openGameActions() {
+    setShowSettings(false);
     setShowLiveSharing(false);
     setShowGuide(false); setShowIntroduction(false);
     setShowHistory(false);
@@ -623,11 +668,12 @@ function App() {
     if (!file) return;
     try {
       const parsed: unknown = JSON.parse(await file.text());
-      if (!isAppData(parsed)) {
+      const normalized = readMatchData(parsed);
+      if (!normalized) {
         throw new Error(t("このファイルは有効な Molkky Fun のデータではありません。"));
       }
       if (!window.confirm(t("現在のゲームデータを、選択したファイルの内容に置き換えますか？"))) return;
-      setData(parsed);
+      setData(normalized);
       setSelectedPins([]);
       setSelectedHistoryGameId(null);
       setMenuOpen(false);
@@ -768,7 +814,8 @@ function App() {
             setShowLiveSharing(true); setMenuOpen(true);
           }}>{live.host.phase === "ready" ? t("共有中 · {0}台", [live.host.viewers]) : live.host.phase === "starting" ? t("共有準備中") : t("共有を確認")}</button>}
           <button className="icon-button menu-toggle" aria-label={t("メニューを開く")} aria-haspopup="dialog" aria-expanded={menuOpen} onClick={() => {
-            setShowLiveSharing(false);
+            setShowSettings(false);
+    setShowLiveSharing(false);
             setShowGuide(false); setShowIntroduction(false);
             setShowHistory(false);
             setSelectedHistoryGameId(null);
@@ -779,19 +826,19 @@ function App() {
         </div>
       </header>
 
-      {(storageError || notice) && (
-        <div className={`notice ${storageError ? "notice-error" : ""}`} role="status">
-          {t(storageError || notice)}
-          {storageError && <button className="notice-dismiss" onClick={() => setStorageError(null)} aria-label={t("閉じる")}>×</button>}
+      {(persistenceError || notice) && (
+        <div className={`notice ${persistenceError ? "notice-error" : ""}`} role="status">
+          {t(persistenceError || notice)}
+          {persistenceError && <button className="notice-dismiss" onClick={() => { setStorageError(null); setSettingsError(null); }} aria-label={t("閉じる")}>×</button>}
         </div>
       )}
 
       <OverlayDialog
         open={menuOpen}
-        title={showLiveSharing ? t("ライブ共有・観戦") : showIntroduction ? t("モルック入門") : showGuide ? t("使い方・分析指標") : selectedHistoryGame ? t("試合結果") : showHistory ? (showCareerAnalysis ? t("個人分析") : t("試合履歴")) : t("メニュー")}
-        pageKey={showLiveSharing ? "live" : showIntroduction ? "introduction" : showGuide ? "guide" : selectedHistoryGame?.id ?? (showHistory ? (showCareerAnalysis ? "career" : "history") : "menu")}
+        title={showSettings ? t("設定") : showLiveSharing ? t("ライブ共有・観戦") : showIntroduction ? t("モルック入門") : showGuide ? t("使い方・分析指標") : selectedHistoryGame ? t("試合結果") : showHistory ? (showCareerAnalysis ? t("個人分析") : t("試合履歴")) : t("メニュー")}
+        pageKey={showSettings ? "settings" : showLiveSharing ? "live" : showIntroduction ? "introduction" : showGuide ? "guide" : selectedHistoryGame?.id ?? (showHistory ? (showCareerAnalysis ? "career" : "history") : "menu")}
         onClose={() => setMenuOpen(false)}
-        onBack={showLiveSharing ? () => { setShowLiveSharing(false); setShowGuide(false); setShowIntroduction(false); setShowHistory(false); }
+        onBack={showSettings ? () => setShowSettings(false) : showLiveSharing ? () => { setShowLiveSharing(false); setShowGuide(false); setShowIntroduction(false); setShowHistory(false); }
           : showIntroduction ? () => setShowIntroduction(false) : showGuide ? () => setShowGuide(false) : selectedHistoryGame ? () => setSelectedHistoryGameId(null)
           : showHistory ? () => {
             if (showCareerAnalysis) {
@@ -809,20 +856,14 @@ function App() {
             accept="application/json,.json"
             onChange={(event) => void importData(event.target.files?.[0])}
           />
-        {showLiveSharing ? <LiveSharingPanel
+        {showSettings ? <MatchSettingsPanel settings={settings} onChange={setSettings} /> : showLiveSharing ? <LiveSharingPanel
           host={live.host} viewer={live.viewer}
           onStart={() => void live.startHost()} onStop={live.stopHost}
           onJoin={(invitation) => { void live.join(invitation); setMenuOpen(false); }}
           onLeave={() => { live.leave(); setMenuOpen(false); }} onRetry={live.retry}
         /> : showIntroduction ? <MolkkyIntroduction /> : showGuide ? <AppGuide /> : !showHistory ? (
           <nav className="menu-options" aria-label={t("アプリメニュー")}>
-            <label className="language-setting">
-              <span>{t("言語 / Language")}</span>
-              <select value={language} onChange={(event) => setLanguage(event.target.value === "en" ? "en" : "ja")}>
-                <option value="ja">日本語</option>
-                <option value="en">English</option>
-              </select>
-            </label>
+            <button type="button" onClick={openSettings}>{t("設定")}<span>→</span></button>
             {game && !live.viewer && <section className="game-menu-actions" aria-labelledby="game-actions-title">
               <h3 id="game-actions-title">{t("現在の試合")}</h3>
               <button type="button" onClick={restartGame}>{t("同じメンバーで最初から")}<span aria-hidden="true">↶</span></button>
@@ -837,7 +878,7 @@ function App() {
             <button type="button" onClick={() => setShowGuide(true)}>{t("使い方・分析指標")}<span>→</span></button>
           </nav>
         ) : selectedHistoryGame ? (
-          <GameResults game={selectedHistoryGame} isSharing={isSharing} onShare={shareAnalysis} />
+          <MatchResults match={selectedHistoryGame} isSharing={isSharing} onShare={shareAnalysis} />
         ) : (
         <section className="history-panel">
           {!showCareerAnalysis && <>
@@ -857,8 +898,8 @@ function App() {
           ) : (
             <ul className="history-list">
               {data.history.map((pastGame) => {
-                const pastStatus = getGameStatus(pastGame);
-                const pastWinner = getScoreUnits(pastGame).find((unit) => unit.id === pastStatus.winnerId);
+                const pastStatus = getMatchStatus(pastGame);
+                const pastWinner = getScoreUnits(getSetGame(pastGame)).find((unit) => unit.id === pastStatus.winnerId);
                 return (
                   <li key={pastGame.id}>
                     <button className="history-result-button" type="button" onClick={() => setSelectedHistoryGameId(pastGame.id)}>
@@ -912,6 +953,7 @@ function App() {
                             : "—"}
                         </strong>
                       </div>
+                      <div><span>{t("参加セット / 獲得セット")}</span><strong>{selectedCareerPlayer.setsPlayed} / {selectedCareerPlayer.setsWon}</strong></div>
                       <div><span>{t("投球数")}</span><strong>{selectedCareerPlayer.throws}</strong></div>
                       <div><span>{t("合計得点")}</span><strong>{selectedCareerPlayer.totalPoints}</strong></div>
                       <div>
@@ -939,7 +981,7 @@ function App() {
                     <section className="detailed-analysis" aria-labelledby="detailed-analysis-title">
                       <h3 id="detailed-analysis-title">{t("詳細入力の追加分析")}</h3>
                       {selectedCareerPlayer.detailedThrows > 0 ? <>
-                        <p className="helper-text">{t("詳細入力 {0} 試合・{1} 投が対象", [selectedCareerPlayer.detailedGames, selectedCareerPlayer.detailedThrows])}</p>
+                        <p className="helper-text">{t("詳細入力 {0} 試合・{1} セット・{2} 投が対象", [selectedCareerPlayer.detailedGames, selectedCareerPlayer.detailedSets, selectedCareerPlayer.detailedThrows])}</p>
                         <div className="career-stat-grid">
                           <div><span>{t("1本倒し")}</span><strong>{t("{0} 回", [selectedCareerPlayer.singlePinThrows])}</strong></div>
                           <div><span>{t("複数本倒し")}</span><strong>{t("{0} 回", [selectedCareerPlayer.multiPinThrows])}</strong></div>
@@ -977,12 +1019,19 @@ function App() {
           )}
         </section>
         )}
-        {(storageError || notice) && <p className="notice" role="status">{t(storageError || notice)}</p>}
+        {(persistenceError || notice) && <p className="notice" role="status">{t(persistenceError || notice)}</p>}
       </OverlayDialog>
 
-      {live.viewer ? <LiveGameView game={live.remoteGame} state={live.viewer} onRetry={live.retry} onLeave={live.leave}>
-        {live.remoteGame && remoteFinished && <GameResults game={live.remoteGame} isSharing={isSharing} onShare={shareAnalysis} />}
-      </LiveGameView> : inSetup ? (
+      {live.viewer ? <>
+        {live.remoteGame && <MatchProgress match={live.remoteGame} />}
+        <LiveGameView game={live.remoteGame ? getSetGame(live.remoteGame) : null} state={live.viewer} onRetry={live.retry} onLeave={live.leave}>
+          {live.remoteGame && (remoteFinished
+            ? <MatchResults match={live.remoteGame} isSharing={isSharing} onShare={shareAnalysis} />
+            : live.remoteGame.sets.at(-1)!.confirmed
+              ? <p className="empty-copy">{t("親端末での次セット開始を待っています。")}</p>
+              : <SetReview match={live.remoteGame} />)}
+        </LiveGameView>
+      </> : inSetup ? (
         <section className="setup-layout">
           <div className="intro-card">
             <p className="eyebrow">MOLKKY SCOREKEEPER</p>
@@ -1013,15 +1062,9 @@ function App() {
                 onClick={() => setMode("team")}
               >{t("チーム戦")}</button>
             </div>
-            <fieldset className="input-mode-picker">
-              <legend>{t("入力モード")}</legend>
-              <div className="mode-switch">
-                <button type="button" aria-pressed={inputMode === "simple"} className={inputMode === "simple" ? "mode-selected" : ""} onClick={() => setInputMode("simple")}>{t("簡易入力")}</button>
-                <button type="button" aria-pressed={inputMode === "detailed"} className={inputMode === "detailed" ? "mode-selected" : ""} onClick={() => setInputMode("detailed")}>{t("詳細入力")}</button>
-              </div>
-              <p className="helper-text">{inputMode === "simple" ? t("得点をタップするだけで記録。基本の分析ができます。") : t("倒れたピンを選んで記録。ピン別の追加分析ができます。")}</p>
-              <p className="input-mode-note">{t("入力モードは試合中に変更できません。")}</p>
-            </fieldset>
+            <button type="button" className="match-settings-summary" onClick={openSettings}>
+              <span>{t("{0}セット先取", [settings.winsRequired])} · {inputMode === "simple" ? t("簡易入力") : t("詳細入力")}</span><span>{t("変更")} →</span>
+            </button>
             {mode === "team" && (
               <div className="team-setup">
                 <div className="list-subheading">
@@ -1208,10 +1251,21 @@ function App() {
             </div>
           </form>
         </section>
+      ) : matchFinished ? (
+        <MatchResults match={match!} isSharing={isSharing} onShare={shareAnalysis} onNewGame={startAnotherGame} />
       ) : isFinished ? (
-        <GameResults game={game!} isSharing={isSharing} onShare={shareAnalysis} onNewGame={startAnotherGame} />
+        <>
+          <MatchProgress match={match!} />
+          {setConfirmed
+            ? <NextSetSetup key={game!.id} match={match!} onStart={(teamOrder, playerOrder) => {
+                setData((current) => ({ ...current, currentMatch: startNextSet(match!, teamOrder, playerOrder) }));
+                setSelectedPins([]);
+              }} />
+            : <SetReview match={match!} onUndo={undoThrow} onConfirm={confirmSet} />}
+        </>
       ) : (
         <section className="game-layout">
+          <MatchProgress match={match!} />
           <div className="game-main">
             {isFinished ? (
               <div className="winner-banner">

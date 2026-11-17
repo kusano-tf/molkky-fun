@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Game } from "./game";
+import type { Match as Game } from "./match";
 import { invitationUrl, parseInvitation, type LiveInvitation } from "./liveProtocol";
 import type { HostController, HostState, LiveController, ViewerState } from "./liveTransport";
 

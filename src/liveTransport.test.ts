@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createGame } from "./game";
+import { createMatch } from "./match";
 import { createLiveHost, createLiveViewer, LIVE_PEER_OPTIONS } from "./liveTransport";
 import { encodeHello, encodeSnapshot, LIVE_PROTOCOL } from "./liveProtocol";
 
@@ -32,7 +32,7 @@ const fake = vi.hoisted(() => {
 vi.mock("peerjs", () => ({ Peer: fake.Peer }));
 
 describe("live transport", () => {
-  const game = createGame([{ id: "a", name: "A" }, { id: "b", name: "B" }]);
+  const game = createMatch([{ id: "a", name: "A" }, { id: "b", name: "B" }], "individual", [], { winsRequired: 2, inputMode: "detailed" });
   const invitation = { peerId: "mf-parent", token: "a".repeat(32) };
   beforeEach(() => { fake.peers.length = 0; vi.useFakeTimers(); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
@@ -56,7 +56,7 @@ describe("live transport", () => {
     for (const connection of [a, b, unauthenticated]) peer.emit("connection", connection);
     for (const connection of [a, b]) connection.emit("data", encodeHello(token));
     expect(state.mock.lastCall![0].viewers).toBe(2);
-    const updated = { ...game, turns: [{ playerId: "a", pins: [12], playedAt: new Date().toISOString() }] };
+    const updated = { ...game, sets: [{ ...game.sets[0], turns: [{ playerId: "a", points: 12, pins: [12], playedAt: new Date().toISOString() }] }] };
     host.publish(updated);
     for (const connection of [a, b]) {
       expect(JSON.parse(connection.sent.at(-1)!)).toMatchObject({ type: "snapshot", revision: 1, game: updated });

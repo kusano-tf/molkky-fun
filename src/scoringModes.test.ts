@@ -3,6 +3,7 @@ import {
   createGame, getGameAnalysis, getGameStatus, getInputMode, getPlayerCareerAnalysis,
   getThrowPoints, isAppData, type Game,
 } from "./game";
+import { readMatchData } from "./match";
 import { decodeSnapshot, encodeSnapshot } from "./liveProtocol";
 
 function detailedGame(team = false): Game {
@@ -98,9 +99,10 @@ describe("fixed scoring input modes", () => {
   it("shares both modes and score-only undo without adding fabricated pins", () => {
     const simple = asSimple(detailedGame());
     for (const game of [detailedGame(), simple, { ...simple, turns: simple.turns.slice(0, -1) }]) {
-      expect(decodeSnapshot(encodeSnapshot("session", 1, game), "session", 0)?.game).toEqual(game);
+      const match = readMatchData({ version: 1, currentGame: game, history: [] })!.currentMatch!;
+      expect(decodeSnapshot(encodeSnapshot("session", 1, match), "session", 0)?.game).toEqual(match);
     }
-    const received = decodeSnapshot(encodeSnapshot("session", 1, simple), "session", 0)!;
-    expect(received.game!.turns[0]).not.toHaveProperty("pins");
+    const received = decodeSnapshot(encodeSnapshot("session", 1, readMatchData({ version: 1, currentGame: simple, history: [] })!.currentMatch!), "session", 0)!;
+    expect(received.game!.sets[0].turns[0]).not.toHaveProperty("pins");
   });
 });

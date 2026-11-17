@@ -379,3 +379,26 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .team-member-order li::marker { color: #78837a; }
 .team-member-order li[aria-current] { color: var(--green); font-weight: 700; }
 .team-order-current { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 5px; background: #e2ecdd; color: var(--green); font-size: 10px; }
+
+.match-settings-summary { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; width: 100%; margin: 16px 0; padding: 14px 12px; border: 1px solid #dce4d7; border-radius: 10px; background: #f0f5ed; color: var(--green); font-size: 12px; text-align: left; }
+.match-progress { margin: 16px 0; padding: 14px 16px; border: 1px solid #e0e6da; border-radius: 14px; background: #edf2e8; color: var(--green); font-size: 12px; }
+.match-progress .section-heading { flex-wrap: wrap; gap: 8px; }
+.match-progress ul, .set-final-scores { display: grid; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.match-progress li, .set-final-scores li { display: flex; justify-content: space-between; gap: 12px; }
+.match-progress li > span, .set-final-scores li > span { min-width: 0; overflow-wrap: anywhere; }
+.match-progress li > strong { flex-shrink: 0; }
+.set-review, .next-set-setup { margin: 16px 0; border-radius: 16px; background: var(--paper); }
+.set-review h1, .next-set-setup h1 { margin: 8px 0 16px; color: var(--green); font-size: 22px; }
+.set-review > .primary-button, .next-set-setup > .primary-button { width: 100%; min-height: 48px; margin-top: 16px; }
+.set-review .undo-throw-button { display: block; margin-top: 14px; }
+.next-team-order { padding-left: 22px; }
+.next-team-order > li { margin: 14px 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
+.next-set-order { padding-left: 22px; }
+.next-set-order li { padding: 8px 0; }
+.next-set-order li > span { display: inline-block; width: calc(100% - 72px); padding-right: 8px; vertical-align: middle; overflow-wrap: anywhere; font-size: 13px; }
+.next-set-order .order-buttons { display: inline-flex; vertical-align: middle; }
+.match-result-summary { margin-top: 16px; padding: 16px; border-radius: 16px; background: #edf2e8; }
+.match-result-summary h1 { color: var(--green); font-size: 24px; overflow-wrap: anywhere; }
+.match-result-summary > p, .set-result-list { color: #657269; font-size: 12px; line-height: 1.8; }
+.match-results > .analysis-share-button { width: 100%; margin: 12px 0; }
+.match-settings-panel > p { margin: 0; }

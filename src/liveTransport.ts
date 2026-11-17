@@ -1,5 +1,5 @@
 import { Peer, type DataConnection } from "peerjs";
-import type { Game } from "./game";
+import type { Match as Game } from "./match";
 import { LIVE_PROTOCOL, decodeSnapshot, encodeHeartbeat, encodeHello, encodeSnapshot, isHeartbeat, isHello, type LiveInvitation } from "./liveProtocol";
 
 // Explicitly override PeerJS defaults: STUN only, with no TURN relays.

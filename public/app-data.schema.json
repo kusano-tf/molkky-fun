@@ -2,39 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://kusano-tf.github.io/molkky-fun/app-data.schema.json",
   "title": "Mölkky Fun 保存データ",
-  "description": "JSONエクスポートおよびローカルストレージ（molkky-fun:data）の現行保存形式。構造と値の範囲を定義します。IDの一意性・参照整合性、投球順、勝敗、history内の試合が終了済みであることはアプリ側で追加検証します。合計得点・勝者・分析値は投球記録から計算します。新規投球はpointsに得点を保存し、詳細入力のみpinsも保存します。",
-  "$comment": "追加プロパティは既存のインポート処理と同様に許可します。日時は新規データではISO 8601形式ですが、既存の読み込み処理が文字列のみを検証するためformat制約を設けません。",
-  "type": "object",
-  "required": [
-    "version",
-    "currentGame",
-    "history"
-  ],
-  "properties": {
-    "version": {
-      "const": 1,
-      "description": "保存形式のバージョン。試合単位のruleVersionとは別です。"
-    },
-    "currentGame": {
-      "description": "現在の試合。進行中・終了済みのどちらも保持できます。登録画面ではnullです。",
-      "anyOf": [
-        {
-          "$ref": "#/$defs/game"
-        },
-        {
-          "type": "null"
-        }
-      ]
-    },
-    "history": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/game"
-      },
-      "description": "終了済み試合の履歴。新しい試合が先頭です。アプリは試合終了時に直近50試合へ切り詰めますが、読み込み時の件数上限はありません。currentGameと同じ終了済み試合が含まれることがあります。"
-    }
-  },
-  "additionalProperties": true,
+  "description": "現在のアプリが保存・書き出す試合・セット形式。端末設定は含めません。旧形式の読み込みと変換はアプリで行います。順序の完全性、得点とピンの一致、確定状態、セット先取後の追加禁止、終了済み履歴はアプリで検証します。",
   "$defs": {
     "player": {
       "title": "プレイヤー",
@@ -87,6 +55,7 @@
       "type": "object",
       "required": [
         "playerId",
+        "points",
         "playedAt"
       ],
       "properties": {
@@ -125,91 +94,139 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 12,
-          "description": "投球の得点（0はミス）。新規記録では必須。旧詳細入力はpinsから計算します。pinsもある場合はその得点と一致する必要があり、アプリで検証します。"
+          "description": "投球の得点（0はミス）。pinsもある場合はその得点と一致する必要があり、アプリで検証します。"
         }
       },
-      "additionalProperties": true,
-      "anyOf": [
-        {
-          "required": [
-            "points"
-          ]
+      "additionalProperties": true
+    },
+    "settings": {
+      "type": "object",
+      "required": [
+        "winsRequired",
+        "inputMode"
+      ],
+      "properties": {
+        "winsRequired": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
         },
-        {
-          "required": [
-            "pins"
+        "inputMode": {
+          "enum": [
+            "simple",
+            "detailed"
           ]
         }
-      ]
+      },
+      "description": "試合開始時のルール設定。端末の現在設定は共有データと別のストレージキーで管理します。"
     },
-    "game": {
-      "title": "試合",
+    "matchSet": {
       "type": "object",
       "required": [
         "id",
-        "ruleVersion",
-        "mode",
-        "players",
         "startedAt",
-        "turns"
+        "teamOrder",
+        "playerOrder",
+        "turns",
+        "confirmed"
       ],
       "properties": {
         "id": {
-          "type": "string",
-          "description": "試合を識別するID。アプリは新規試合でUUIDを生成します。"
+          "type": "string"
+        },
+        "startedAt": {
+          "type": "string"
         },
         "ruleVersion": {
           "const": 2,
-          "description": "現行のルールバージョンは2。残り1人・1チームになったとき勝利とするルールです。"
+          "description": "省略は旧ルールを維持する移行済みセット。"
+        },
+        "confirmed": {
+          "type": "boolean",
+          "description": "セット終了後、入力内容を確認して確定したか。未確定なら最終投球を取り消せます。"
+        },
+        "playerOrder": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "teamOrder": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "turns": {
+          "type": "array",
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/throwRecord"
+              },
+              {
+                "required": [
+                  "points"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    "match": {
+      "type": "object",
+      "required": [
+        "id",
+        "startedAt",
+        "mode",
+        "settings",
+        "players",
+        "teams",
+        "sets"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "startedAt": {
+          "type": "string"
         },
         "mode": {
-          "type": "string",
           "enum": [
             "individual",
             "team"
-          ],
-          "description": "individualは個人戦、teamはチーム戦。"
+          ]
+        },
+        "settings": {
+          "$ref": "#/$defs/settings"
         },
         "players": {
           "type": "array",
           "minItems": 2,
           "items": {
             "$ref": "#/$defs/player"
-          },
-          "description": "参加者。個人戦ではこの配列順、チーム戦では各チームのメンバーをこの配列から抽出した順で投げます。プレイヤーIDの重複は禁止です。"
+          }
         },
         "teams": {
           "type": "array",
           "items": {
             "$ref": "#/$defs/team"
-          },
-          "description": "チーム戦の投球順。各チームには1人以上の所属選手が必要です。個人戦では省略でき、使用しません。"
+          }
         },
-        "startedAt": {
-          "type": "string",
-          "description": "試合開始日時。新規記録はISO 8601形式です。"
-        },
-        "turns": {
+        "sets": {
           "type": "array",
+          "minItems": 1,
           "items": {
-            "$ref": "#/$defs/throwRecord"
-          },
-          "description": "実際に投げた順の投球記録。未投球なら空配列。失格後の投球や試合終了後の追加投球は禁止です。"
-        },
-        "inputMode": {
-          "enum": [
-            "simple",
-            "detailed"
-          ],
-          "description": "試合中固定の入力モード。simpleは得点のみ、detailedは倒れたピンも記録。省略された旧データはdetailedとして扱います。"
+            "$ref": "#/$defs/matchSet"
+          }
         }
       },
       "allOf": [
         {
           "if": {
-            "required": [
-              "mode"
-            ],
             "properties": {
               "mode": {
                 "const": "team"
@@ -217,9 +234,6 @@
             }
           },
           "then": {
-            "required": [
-              "teams"
-            ],
             "properties": {
               "teams": {
                 "minItems": 2
@@ -232,30 +246,41 @@
                 }
               }
             }
+          },
+          "else": {
+            "properties": {
+              "teams": {
+                "maxItems": 0
+              }
+            }
           }
         },
         {
           "if": {
-            "required": [
-              "inputMode"
-            ],
             "properties": {
-              "inputMode": {
-                "const": "simple"
+              "settings": {
+                "properties": {
+                  "inputMode": {
+                    "const": "simple"
+                  }
+                }
               }
             }
           },
           "then": {
             "properties": {
-              "turns": {
+              "sets": {
                 "items": {
-                  "required": [
-                    "points"
-                  ],
-                  "not": {
-                    "required": [
-                      "pins"
-                    ]
+                  "properties": {
+                    "turns": {
+                      "items": {
+                        "not": {
+                          "required": [
+                            "pins"
+                          ]
+                        }
+                      }
+                    }
                   }
                 }
               }
@@ -263,50 +288,100 @@
           },
           "else": {
             "properties": {
-              "turns": {
+              "sets": {
                 "items": {
-                  "required": [
-                    "pins"
-                  ]
+                  "properties": {
+                    "turns": {
+                      "items": {
+                        "required": [
+                          "pins"
+                        ]
+                      }
+                    }
+                  }
                 }
               }
             }
           }
         }
+      ]
+    },
+    "matchData": {
+      "type": "object",
+      "required": [
+        "version",
+        "currentMatch",
+        "history"
       ],
-      "additionalProperties": true
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "currentMatch": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/match"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "history": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/match"
+          }
+        }
+      },
+      "additionalProperties": false
     }
   },
   "examples": [
     {
       "version": 1,
-      "currentGame": null,
+      "currentMatch": null,
       "history": []
     },
     {
       "version": 1,
-      "currentGame": {
-        "id": "example-individual",
-        "ruleVersion": 2,
+      "currentMatch": {
+        "id": "example-match",
+        "startedAt": "2026-11-17T00:00:00.000Z",
         "mode": "individual",
+        "settings": {
+          "winsRequired": 2,
+          "inputMode": "simple"
+        },
         "players": [
           {
             "id": "alice",
-            "name": "アリス"
+            "name": "Alice"
           },
           {
             "id": "bob",
-            "name": "ボブ"
+            "name": "Bob"
           }
         ],
-        "startedAt": "2026-11-13T03:00:00.000Z",
-        "turns": [
+        "teams": [],
+        "sets": [
           {
-            "playerId": "alice",
-            "pins": [
-              12
+            "id": "set-1",
+            "startedAt": "2026-11-17T00:00:00.000Z",
+            "ruleVersion": 2,
+            "confirmed": false,
+            "playerOrder": [
+              "alice",
+              "bob"
             ],
-            "playedAt": "2026-11-13T03:01:00.000Z"
+            "teamOrder": [],
+            "turns": [
+              {
+                "playerId": "alice",
+                "points": 12,
+                "playedAt": "2026-11-17T00:01:00.000Z"
+              }
+            ]
           }
         ]
       },
@@ -314,64 +389,65 @@
     },
     {
       "version": 1,
-      "currentGame": {
-        "id": "example-team",
-        "ruleVersion": 2,
+      "currentMatch": {
+        "id": "example-team-match",
+        "startedAt": "2026-11-17T00:00:00.000Z",
         "mode": "team",
+        "settings": {
+          "winsRequired": 2,
+          "inputMode": "detailed"
+        },
         "players": [
           {
             "id": "alice",
-            "name": "アリス",
+            "name": "Alice",
             "teamId": "red"
           },
           {
             "id": "bob",
-            "name": "ボブ",
+            "name": "Bob",
             "teamId": "blue"
           }
         ],
         "teams": [
           {
             "id": "red",
-            "name": "赤チーム"
+            "name": "Red"
           },
           {
             "id": "blue",
-            "name": "青チーム"
+            "name": "Blue"
           }
         ],
-        "startedAt": "2026-11-13T03:00:00.000Z",
-        "turns": []
-      },
-      "history": []
-    },
-    {
-      "version": 1,
-      "currentGame": {
-        "id": "example-simple",
-        "ruleVersion": 2,
-        "mode": "individual",
-        "inputMode": "simple",
-        "players": [
+        "sets": [
           {
-            "id": "alice",
-            "name": "アリス"
-          },
-          {
-            "id": "bob",
-            "name": "ボブ"
-          }
-        ],
-        "startedAt": "2026-11-16T00:00:00.000Z",
-        "turns": [
-          {
-            "playerId": "alice",
-            "points": 3,
-            "playedAt": "2026-11-16T00:01:00.000Z"
+            "id": "set-1",
+            "startedAt": "2026-11-17T00:00:00.000Z",
+            "ruleVersion": 2,
+            "confirmed": false,
+            "playerOrder": [
+              "alice",
+              "bob"
+            ],
+            "teamOrder": [
+              "red",
+              "blue"
+            ],
+            "turns": [
+              {
+                "playerId": "alice",
+                "points": 12,
+                "playedAt": "2026-11-17T00:01:00.000Z",
+                "pins": [
+                  12
+                ]
+              }
+            ]
           }
         ]
       },
       "history": []
     }
-  ]
+  ],
+  "$ref": "#/$defs/matchData"
 }

@@ -1,8 +1,8 @@
-import { isAppData, type Game } from "./game";
+import { isValidMatch, type Match as Game } from "./match";
 
 export const LIVE_PROTOCOL = "molkky-fun/live";
-// Version 2 supports score-only throws without inventing fallen pin numbers.
-export const LIVE_VERSION = 2;
+// Version 3 carries matches, set orders and confirmation state.
+export const LIVE_VERSION = 3;
 export const MAX_LIVE_MESSAGE_LENGTH = 1_000_000;
 
 export type LiveInvitation = { peerId: string; token: string };
@@ -83,7 +83,7 @@ export function decodeSnapshot(message: unknown, sessionId: string, lastRevision
       snapshot.type !== "snapshot" || snapshot.sessionId !== sessionId ||
       !Number.isSafeInteger(snapshot.revision) || snapshot.revision! < 0 ||
       snapshot.revision! <= lastRevision ||
-      !isAppData({ version: 1, currentGame: snapshot.game, history: [] })
+      !(snapshot.game === null || isValidMatch(snapshot.game))
     ) return null;
     return snapshot as LiveSnapshot;
   } catch {
